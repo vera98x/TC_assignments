@@ -64,15 +64,18 @@ parseDateTime = do
 parseHour :: Parser Char Hour
 parseHour = do 
             d1 <- integer
-            return(Hour d1)
+            d2 <- integer
+            return(Hour (d1 *10 + d2))
 parseMinute :: Parser Char Minute
 parseMinute = do    
               d1 <- integer
-              return (Minute d1)
+              d2 <- integer
+              return (Minute (d1 *10 + d2))
 parseSecond :: Parser Char Second
 parseSecond = do
               d1 <- integer
-              return (Second d1)
+              d2 <- integer
+              return (Second (d1 *10 + d2))
 parseTime :: Parser Char Time
 parseTime = do
             h <- parseHour
@@ -82,15 +85,20 @@ parseTime = do
 parseYear :: Parser Char Year
 parseYear = do
             d1 <- integer
-            return (Year d1)
+            d2 <- integer
+            d3 <- integer
+            d4 <- integer
+            return (Year (d1*1000 + d2*100 + d3*10 + d4))
 parseMonth :: Parser Char Month
 parseMonth = do
              d1 <- integer
-             return (Month d1)
+             d2 <- integer
+             return (Month (d1 *10 + d2))
 parseDay :: Parser Char Day
 parseDay = do
            d1 <- integer
-           return (Day d1)
+           d2 <- integer
+           return (Day (d1 *10 + d2))
 parseDate :: Parser Char Date
 parseDate = do 
             y <- parseYear
