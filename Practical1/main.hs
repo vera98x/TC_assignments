@@ -59,7 +59,9 @@ mainCalendar = do
 parseDateTime :: Parser Char DateTime
 parseDateTime = do 
                 d <- parseDate
-                t <- parseTime        
+                sep <- identifier 
+                t <- parseTime   
+                sep2 <- identifier      
                 return (DateTime d t True) -- TODO: how to create bool?
 parseHour :: Parser Char Hour
 parseHour = do 
@@ -114,10 +116,32 @@ run p l = let x = filter (\(a,sl) -> length sl == 0)(parse p l) in case x of
 
 -- Exercise 3
 printDateTime :: DateTime -> String
-printDateTime = undefined
+printDateTime dt = printDate (date dt) ++ "T" ++ printTime (time dt) ++ "Z"
+
+printDate :: Date -> String
+printDate d =  printYear (year d) ++ printMonth (month d) ++ printDay (day d)
+
+printYear :: Year -> String
+printYear y = show (unYear y)
+printMonth :: Month -> String
+printMonth m = show (unMonth m)
+printDay :: Day -> String
+printDay d = show (unDay d)
+
+printTime :: Time -> String
+printTime t = printHour (hour t) ++ printMinute (minute t) ++ printSecond (second t)
+
+printHour :: Hour -> String
+printHour h = show (unHour h)
+printMinute :: Minute -> String
+printMinute m = show (unMinute m)
+printSecond :: Second -> String
+printSecond s = show (unSecond s)
 
 -- Exercise 4
 parsePrint s = fmap printDateTime $ run parseDateTime s
+
+parsePrint2 s = fmap printTime $ run parseTime s
 
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
