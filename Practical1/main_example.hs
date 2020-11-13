@@ -15,6 +15,7 @@ instance Show Point2 where
 example1 :: String
 example1 = "(10,10)"
 
+
 parsePoint2 :: Parser Char Point2 
 parsePoint2 = do
              b1 <- token "("
@@ -25,7 +26,7 @@ parsePoint2 = do
              return (Point2 x y)
 
 parsePoint2' :: Parser Char Point2 
-parsePoint2' = (\a1 a2 a3 a4 a5 -> Point2 a2 a4) <$> token "(" <*> integer <*> token "," <*> integer <*>token ")"
+parsePoint2' = (\a1 a2 a3 a4 a5 -> Point2 a2 a4) <$> token "(" <*> integer <*> token "," <*> integer <*>token ")"  -- <$> is fmap -- <*> = f (a -> b) -> f a -> f b
 
 parsePoint2'' :: Parser Char Point2 
 parsePoint2'' = (\x y -> Point2 x y) <$> (token "(" *> integer) <*> (token "," *> integer <* token ")")

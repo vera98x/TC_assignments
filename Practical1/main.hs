@@ -57,7 +57,54 @@ mainCalendar = do
 
 -- Exercise 1
 parseDateTime :: Parser Char DateTime
-parseDateTime = undefined
+parseDateTime = do 
+                d <- parseDate
+                t <- parseTime        
+                return (DateTime d t True) -- TODO: how to create bool?
+
+parseHour :: Parser Char Hour
+parseHour = do 
+            d1 <- integer
+            return(Hour d1)
+
+parseMinute :: Parser Char Minute
+parseMinute = do    
+              d1 <- integer
+              return (Minute d1)
+
+parseSecond :: Parser Char Second
+parseSecond = do
+              d1 <- integer
+              return (Second d1)
+
+parseTime :: Parser Char Time
+parseTime = do
+            h <- parseHour
+            m <- parseMinute
+            s <- parseSecond
+            return (Time h m s)
+
+parseYear :: Parser Char Year
+parseYear = do
+            d1 <- integer
+            return (Year d1)
+
+parseMonth :: Parser Char Month
+parseMonth = do
+             d1 <- integer
+             return (Month d1)
+
+parseDay :: Parser Char Day
+parseDay = do
+           d1 <- integer
+           return (Day d1)
+
+parseDate :: Parser Char Date
+parseDate = do 
+            y <- parseYear
+            m <- parseMonth
+            d <- parseDay
+            return (Date y m d)
 
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
