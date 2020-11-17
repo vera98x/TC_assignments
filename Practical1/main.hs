@@ -1,3 +1,10 @@
+{-# language CPP #-}
+#if __GLASGOW_HASKELL__ >= 804
+import Prelude hiding ((*>), (<*), Monoid, mempty, foldMap, Foldable, (<>))
+#elif __GLASGOW_HASKELL__ >= 710
+import Prelude hiding ((*>), (<*), Monoid, mempty, foldMap, Foldable)
+#endif
+
 import ParseLib.Abstract
 import System.Environment
 
@@ -34,6 +41,9 @@ data Result = SyntaxError | Invalid DateTime | Valid DateTime deriving (Eq, Ord)
 instance Show DateTime where
     show = printDateTime
 
+instance Show Date where
+    show = printDate
+
 instance Show Result where
     show SyntaxError = "date/time with wrong syntax"
     show (Invalid _) = "good syntax, but invalid date or time values"
@@ -59,9 +69,9 @@ mainCalendar = do
 parseDateTime :: Parser Char DateTime
 parseDateTime = do 
                 d <- parseDate
-                sep <- identifier 
+                sep <- symbol 'T' 
                 t <- parseTime   
-                sep2 <- identifier      
+                sep2 <- symbol 'Z'       
                 return (DateTime d t True) -- TODO: how to create bool?
 parseHour :: Parser Char Hour
 parseHour = do 
@@ -116,7 +126,7 @@ run p l = let x = filter (\(a,sl) -> length sl == 0)(parse p l) in case x of
 
 -- Exercise 3
 printDateTime :: DateTime -> String
-printDateTime dt = printDate (date dt) ++ "T" ++ printTime (time dt) ++ "Z"
+printDateTime dt = printDate (date dt) ++ "T" ++ printTime (time dt) ++ if (utc dt) then "Z" else ""
 
 printDate :: Date -> String
 printDate d =  printYear (year d) ++ printMonth (month d) ++ printDay (day d)
@@ -141,18 +151,38 @@ printSecond s = show (unSecond s)
 -- Exercise 4
 parsePrint s = fmap printDateTime $ run parseDateTime s
 
-parsePrint2 s = fmap printTime $ run parseTime s
-
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
-checkDateTime = undefined
+checkDateTime dt | (unMonth(month (date dt)) < 0 || unMonth(month (date dt)) > 13) = False
+                 | (unYear(year (date dt)) < 0 ) = False
+                 | (unMonth(month (date dt)) `elem` [1,3,5,7,8,10,12] && unDay(day (date dt)) > 31) = False
+                 | (unMonth(month (date dt)) `elem` [4,6,9,11] && unDay(day (date dt)) > 30) = False
+                 | (unHour(hour (time dt)) < 0 || unHour(hour (time dt)) >= 24) = False
+                 | (unMinute(minute (time dt)) < 0 || unMinute(minute (time dt)) >= 60) = False
+                 | (unMonth(month (date dt)) == 2) = if unYear(year (date dt)) `mod` 4 == 0 then unDay(day(date dt)) <= 29 else unDay(day (date dt)) <= 28
+                 | otherwise = True
 
 -- Exercise 6
-data Calendar = Calendar
+data Calendar = Calendar CalProp EventProp
     deriving (Eq, Ord, Show)
 
-data Event = Event
+data Event = Event EventProp  deriving (Eq, Ord, Show)
+data EventProp = EPDS  DTStamp | EPU UID | EPS DTStart | 
+                EPE DTEnd | EPD Discription 
+                | EPSU Summary | EPL Location
     deriving (Eq, Ord, Show)
+
+data DTStamp = DTStamp DateTime deriving (Eq, Ord, Show)
+data UID = UID String deriving (Eq, Ord, Show)
+data DTStart = DTStart DateTime deriving (Eq, Ord, Show)
+data DTEnd = DTEnd DateTime deriving (Eq, Ord, Show)
+data Discription = Discription String deriving (Eq, Ord, Show)
+data Summary = Summary String deriving (Eq, Ord, Show)
+data Location = Location String deriving (Eq, Ord, Show)
+
+data CalProp = Prodid | Version deriving (Eq, Ord, Show)
+data Prodid = PD String deriving (Eq, Ord, Show)
+data Version = VS deriving (Eq, Ord, Show)
 
 -- Exercise 7
 data Token = Token
