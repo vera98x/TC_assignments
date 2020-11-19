@@ -1,10 +1,5 @@
-{-# language CPP #-}
-#if __GLASGOW_HASKELL__ >= 804
-import Prelude hiding ((*>), (<*), Monoid, mempty, foldMap, Foldable, (<>))
-#elif __GLASGOW_HASKELL__ >= 710
-import Prelude hiding ((*>), (<*), Monoid, mempty, foldMap, Foldable)
-#endif
 
+import Prelude hiding ((*>), (<*))
 import ParseLib.Abstract
 
 data Point = Point Int Int deriving Show -- (10,11)

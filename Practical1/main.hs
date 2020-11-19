@@ -167,29 +167,23 @@ data Calendar = Calendar CalProp EventProp
     deriving (Eq, Ord, Show)
 
 data Event = Event EventProp  deriving (Eq, Ord, Show)
-data EventProp = EPDS  DTStamp | EPU UID | EPS DTStart | 
-                EPE DTEnd | EPD Discription 
-                | EPSU Summary | EPL Location
+data EventProp = DTStamp DateTime | UID String | DTStart DateTime
+                | DTEnd DateTime | Discription String
+                | Summary String | Location String
     deriving (Eq, Ord, Show)
 
-data DTStamp = DTStamp DateTime deriving (Eq, Ord, Show)
-data UID = UID String deriving (Eq, Ord, Show)
-data DTStart = DTStart DateTime deriving (Eq, Ord, Show)
-data DTEnd = DTEnd DateTime deriving (Eq, Ord, Show)
-data Discription = Discription String deriving (Eq, Ord, Show)
-data Summary = Summary String deriving (Eq, Ord, Show)
-data Location = Location String deriving (Eq, Ord, Show)
-
-data CalProp = Prodid | Version deriving (Eq, Ord, Show)
-data Prodid = PD String deriving (Eq, Ord, Show)
-data Version = VS deriving (Eq, Ord, Show)
+data CalProp = Prodid String | Version deriving (Eq, Ord, Show)
 
 -- Exercise 7
-data Token = Token
+data Token = Token String
     deriving (Eq, Ord, Show)
 
 scanCalendar :: Parser Char [Token]
-scanCalendar = undefined
+scanCalendar = (:) <$> scanCalendar2 <*> many scanCalendar2
+
+scanCalendar2 :: Parser Char Token
+scanCalendar2 = Token <$> token ":" <|> Token <$> token "\r\n" <|> Token <$> identifier 
+
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = undefined
