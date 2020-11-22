@@ -71,52 +71,25 @@ parseDateTime = do
                 d <- parseDate
                 sep <- symbol 'T' 
                 t <- parseTime   
-                sep2 <- symbol 'Z'       
-                return (DateTime d t True) -- TODO: how to create bool?
+                z <- symbol 'Z' <|> succeed ' '        
+                return (DateTime d t (z == 'Z')) -- TODO: how to create bool?
 parseHour :: Parser Char Hour
-parseHour = do 
-            d1 <- integer
-            d2 <- integer
-            return(Hour (d1 *10 + d2))
+parseHour = (\i1 i2 -> Hour ((i1*10)+i2)) <$> integer <*> integer 
+
 parseMinute :: Parser Char Minute
-parseMinute = do    
-              d1 <- integer
-              d2 <- integer
-              return (Minute (d1 *10 + d2))
+parseMinute = (\i1 i2 -> Minute ((i1*10)+i2)) <$> integer <*> integer 
 parseSecond :: Parser Char Second
-parseSecond = do
-              d1 <- integer
-              d2 <- integer
-              return (Second (d1 *10 + d2))
+parseSecond = (\i1 i2 -> Second ((i1*10)+i2)) <$> integer <*> integer 
 parseTime :: Parser Char Time
-parseTime = do
-            h <- parseHour
-            m <- parseMinute
-            s <- parseSecond
-            return (Time h m s)
+parseTime = Time <$> parseHour <*> parseMinute <*> parseSecond
 parseYear :: Parser Char Year
-parseYear = do
-            d1 <- integer
-            d2 <- integer
-            d3 <- integer
-            d4 <- integer
-            return (Year (d1*1000 + d2*100 + d3*10 + d4))
+parseYear = (\d1 d2 d3 d4 -> Year (d1*1000 + d2*100 + d3*10 + d4)) <$> integer <*> integer <*> integer <*> integer 
 parseMonth :: Parser Char Month
-parseMonth = do
-             d1 <- integer
-             d2 <- integer
-             return (Month (d1 *10 + d2))
+parseMonth = (\i1 i2 -> Month ((i1*10)+i2)) <$> integer <*> integer 
 parseDay :: Parser Char Day
-parseDay = do
-           d1 <- integer
-           d2 <- integer
-           return (Day (d1 *10 + d2))
+parseDay = (\i1 i2 -> Day ((i1*10)+i2)) <$> integer <*> integer 
 parseDate :: Parser Char Date
-parseDate = do 
-            y <- parseYear
-            m <- parseMonth
-            d <- parseDay
-            return (Date y m d)
+parseDate = Date <$> parseYear <*> parseMonth <*> parseDay 
 
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
@@ -163,7 +136,7 @@ checkDateTime dt | (unMonth(month (date dt)) < 0 || unMonth(month (date dt)) > 1
                  | otherwise = True
 
 -- Exercise 6
-data Calendar = Calendar CalProp EventProp
+data Calendar = Calendar [CalProp] [EventProp]
     deriving (Eq, Ord, Show)
 
 data Event = Event EventProp  deriving (Eq, Ord, Show)
@@ -175,18 +148,83 @@ data EventProp = DTStamp DateTime | UID String | DTStart DateTime
 data CalProp = Prodid String | Version deriving (Eq, Ord, Show)
 
 -- Exercise 7
-data Token = Token String
+data Token = TokenEventStart | TokenEventEnd | TokenDtstamp | TokenUid |
+             TokenDtstart | TokenDtend | TokenDescription | TokenSummary | TokenLocation |
+             TokenCalendarStart | TokenCalendarEnd | TokenProdid | TokenVersion | TokenString String | Ignore
     deriving (Eq, Ord, Show)
 
 scanCalendar :: Parser Char [Token]
-scanCalendar = (:) <$> scanCalendar2 <*> many scanCalendar2
+scanCalendar = many scanCalendar2
 
 scanCalendar2 :: Parser Char Token
-scanCalendar2 = Token <$> token ":" <|> Token <$> token "\r\n" <|> Token <$> identifier 
+scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <|> 
+                const TokenEventEnd <$> token "END:VEVENT" <|> 
+                const TokenDtstamp <$> token "DTSTAMP:" <|> 
+                const TokenUid <$> token "UID:" <|> 
+                const TokenDtstart <$> token "DTSTART:" <|> 
+                const TokenDtend <$> token "DTEND:" <|> 
+                const TokenDescription <$> token "DESCRIPTION:" <|> 
+                const TokenSummary <$> token "SUMMARY:" <|> 
+                const TokenLocation <$> token "LOCATION:" <|> 
+                const TokenCalendarStart <$> token "BEGIN:VCALENDAR" <|> 
+                const TokenCalendarEnd <$> token "END:VCALENDAR" <|> 
+                const TokenProdid <$> token "PRODID:" <|> 
+                const TokenVersion <$> token "VERSION:2.0" <|> 
+                const Ignore <$> token "\r\n" <|> 
+                TokenString <$> identifier
 
+test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
+test2 = "BEGIN:VCALENDAR\r\nEND:VCALENDAR"
 
 parseCalendar :: Parser Token Calendar
-parseCalendar = undefined
+parseCalendar = do
+                start <- satisfy (== TokenCalendarStart)
+                _ <- satisfy (== Ignore)
+                --calls <- manyCalprop
+                --events <- manyEvent
+                end <- satisfy (== TokenCalendarEnd) 
+                _ <- satisfy (== Ignore)
+                return (Calendar [] [])
+
+
+isString = (\(TokenString x) -> True)
+
+-- testDTStamp :: Parser Token EventProp
+-- testDTStamp = do    
+--               start <- satisfy (== TokenDtstamp)
+--               str <- satisfy (isString)
+--               let datetime = run parseDateTime str 
+--               case datetime of 
+--                   Nothing -> failp 
+--                   Just x  -> return (DTStamp x)
+
+--manyCalprop :: Parser Token [CalProp]
+--manyCalprop = [CalProp <$> satisfy (== TokenProdid) ]
+--manyCalprop = (:) <$> (TokenProdid <* Ignore <|> TokenVersion <* Ignore) <*> many (TokenProdid <* Ignore <|> TokenVersion <* Ignore)
+---manyEvent :: Parser Token [EventProp]
+--manyEvent = [EventProp <$> satisfy (==TokenDtstamp) ]
+--manyEvent = TokenEventStart <*> many (TokenDtstamp) <*> TokenEventEnd
+
+--createDateTime = do
+--                 (TokenString str) <- satisfy (== TokenString)
+--                 run parseDateTime str
+
+
+-- eventOptions = const DTStamp <$> satisfy (==TokenDtstamp) <*> (satisfy createDateTime <* satisfy (==Ignore))
+--                 const TokenEventEnd <$> token "END:VEVENT" <|> 
+--                 const TokenDtstamp <$> token "DTSTAMP:" <|> 
+--                 const TokenUid <$> token "UID:" <|> 
+--                 const TokenDtstart <$> token "DTSTART:" <|> 
+--                 const TokenDtend <$> token "DTEND:" <|> 
+--                 const TokenDescription <$> token "DESCRIPTION:" <|> 
+--                 const TokenSummary <$> token "SUMMARY:" <|> 
+--                 const TokenLocation <$> token "LOCATION:" <|> 
+--                 const TokenCalendarStart <$> token "BEGIN:VCALENDAR" <|> 
+--                 const TokenCalendarEnd <$> token "END:VCALENDAR" <|> 
+--                 const TokenProdid <$> token "PRODID:" <|> 
+--                 const TokenVersion <$> token "VERSION:2.0" <|> 
+--                 const Ignore <$> token "\r\n" <|> 
+--                 TokenString <$> identifier
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
