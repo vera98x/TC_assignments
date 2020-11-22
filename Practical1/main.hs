@@ -141,7 +141,7 @@ data Calendar = Calendar [CalProp] [EventProp]
 
 data Event = Event EventProp  deriving (Eq, Ord, Show)
 data EventProp = DTStamp DateTime | UID String | DTStart DateTime
-                | DTEnd DateTime | Discription String
+                | DTEnd DateTime | Description String
                 | Summary String | Location String
     deriving (Eq, Ord, Show)
 
@@ -174,57 +174,47 @@ scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <|>
                 TokenString <$> identifier
 
 test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
-test2 = "BEGIN:VCALENDAR\r\nEND:VCALENDAR"
+test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = do
                 start <- satisfy (== TokenCalendarStart)
                 _ <- satisfy (== Ignore)
-                --calls <- manyCalprop
-                --events <- manyEvent
+                calls <- many caloptions
+                events <- (satisfy (== TokenEventStart) *>  many eventOptions <* satisfy (== TokenEventEnd) ) <|> succeed []
                 end <- satisfy (== TokenCalendarEnd) 
                 _ <- satisfy (== Ignore)
-                return (Calendar [] [])
-
+                return (Calendar calls events)
 
 isString = (\(TokenString x) -> True)
 
--- testDTStamp :: Parser Token EventProp
--- testDTStamp = do    
---               start <- satisfy (== TokenDtstamp)
---               str <- satisfy (isString)
---               let datetime = run parseDateTime str 
---               case datetime of 
---                   Nothing -> failp 
---                   Just x  -> return (DTStamp x)
+stringToDateTime :: Parser Token DateTime
+stringToDateTime = do    
+                  str <- satisfy (isString)
+                  case str of
+                    TokenString x -> let datetime = run parseDateTime x in
+                                      case datetime of 
+                                          Nothing -> failp 
+                                          Just x  -> return x
+                    _ -> failp
 
---manyCalprop :: Parser Token [CalProp]
---manyCalprop = [CalProp <$> satisfy (== TokenProdid) ]
---manyCalprop = (:) <$> (TokenProdid <* Ignore <|> TokenVersion <* Ignore) <*> many (TokenProdid <* Ignore <|> TokenVersion <* Ignore)
----manyEvent :: Parser Token [EventProp]
---manyEvent = [EventProp <$> satisfy (==TokenDtstamp) ]
---manyEvent = TokenEventStart <*> many (TokenDtstamp) <*> TokenEventEnd
-
---createDateTime = do
---                 (TokenString str) <- satisfy (== TokenString)
---                 run parseDateTime str
-
-
--- eventOptions = const DTStamp <$> satisfy (==TokenDtstamp) <*> (satisfy createDateTime <* satisfy (==Ignore))
---                 const TokenEventEnd <$> token "END:VEVENT" <|> 
---                 const TokenDtstamp <$> token "DTSTAMP:" <|> 
---                 const TokenUid <$> token "UID:" <|> 
---                 const TokenDtstart <$> token "DTSTART:" <|> 
---                 const TokenDtend <$> token "DTEND:" <|> 
---                 const TokenDescription <$> token "DESCRIPTION:" <|> 
---                 const TokenSummary <$> token "SUMMARY:" <|> 
---                 const TokenLocation <$> token "LOCATION:" <|> 
---                 const TokenCalendarStart <$> token "BEGIN:VCALENDAR" <|> 
---                 const TokenCalendarEnd <$> token "END:VCALENDAR" <|> 
---                 const TokenProdid <$> token "PRODID:" <|> 
---                 const TokenVersion <$> token "VERSION:2.0" <|> 
---                 const Ignore <$> token "\r\n" <|> 
---                 TokenString <$> identifier
+getString :: Parser Token String
+getString = do
+            str <- satisfy (isString)
+            case str of
+              TokenString x -> return x
+              _ -> failp
+eventOptions :: Parser Token EventProp
+eventOptions =  (DTStamp <$> (satisfy (==TokenDtstamp) *> stringToDateTime <* satisfy (==Ignore))) <|>
+                (UID <$> (satisfy (==TokenUid) *> getString <* satisfy (==Ignore))) <|>
+                (DTStart <$> (satisfy (==TokenDtstart) *> stringToDateTime <* satisfy (==Ignore))) <|> 
+                (DTEnd <$> (satisfy (==TokenDtend) *> stringToDateTime <* satisfy (==Ignore))) <|>  
+                (Description <$> (satisfy (==TokenDescription) *> getString <* satisfy (==Ignore))) <|>  
+                (Summary <$> (satisfy (==TokenSummary) *> getString <* satisfy (==Ignore))) <|>  
+                (Location <$> (satisfy (==TokenLocation) *> getString <* satisfy (==Ignore)))  
+caloptions :: Parser Token CalProp
+caloptions = (Prodid <$> (satisfy (==TokenProdid) *> getString <* satisfy (==Ignore))) <|> 
+             (const Version <$> (satisfy (==TokenVersion) <* satisfy (==Ignore))) 
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
