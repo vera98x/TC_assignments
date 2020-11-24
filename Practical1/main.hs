@@ -167,7 +167,7 @@ scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <<|>
                 const TokenProdid <$> token "PRODID:" <<|> 
                 const TokenVersion <$> token "VERSION:2.0" <<|> 
                 const Ignore <$> token "\r\n" <<|> 
-                TokenString <$> identifier
+                TokenString <$> greedy(satisfy(/='\r'))
 
 test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
 test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
@@ -254,10 +254,24 @@ printCalendar (Calendar cal ev ) = "BEGIN:VCALENDAR\r\n" ++ printCall cal ++ "BE
 
 -- Exercise 10
 countEvents :: Calendar -> Int
-countEvents = undefined
+countEvents (Calendar cal ev) = length ev
+
+isStartTime (DTStart x) = True
+isStartTime _           = False
+
+isEndTime (DTEnd x) = True
+isEndTime _         = False
+
+getEventProp :: [Event] -> [(EventProp, EventProp, Event)]
+getEventProp ev = zip3 [x | (Event y) <- ev, x <- y, isStartTime x] [x | (Event y) <- ev, x <- y, isEndTime x] [x | x <- ev]
 
 findEvents :: DateTime -> Calendar -> [Event]
-findEvents = undefined
+findEvents dt (Calendar cal ev) = [x | (DTStart s, DTEnd e, x) <- (getEventProp ev), dt >= s && dt < e]
+
+t = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 00) (Minute 00) (Second 00)) True
+t2 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 5) (Minute 00) (Second 00) ) True
+t3 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 10) (Minute 00) (Second 00) ) True
+cal = Calendar [] [ (Event [(DTStart t), (DTEnd t3), (Summary "dit moet een event zijn")] ) ]
 
 checkOverlapping :: Calendar -> Bool
 checkOverlapping = undefined
