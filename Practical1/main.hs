@@ -135,10 +135,11 @@ checkDateTime dt | (unMonth(month (date dt)) < 0 || unMonth(month (date dt)) > 1
 data Calendar = Calendar [CalProp] [Event]
     deriving (Eq, Ord, Show)
 
-data Event = DTStamp DateTime | UID String | DTStart DateTime
-                | DTEnd DateTime | Description String
-                | Summary String | Location String
+data Event = Event [EventProp]
     deriving (Eq, Ord, Show)
+
+data EventProp = DTStamp DateTime | UID String | DTStart DateTime |DTEnd DateTime |Description String |
+                 Summary String |Location String deriving (Eq, Ord, Show)
 
 data CalProp = Prodid String | Version deriving (Eq, Ord, Show)
 
@@ -170,7 +171,7 @@ scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <<|>
 
 test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
 test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
-test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
 
 parseCalendar :: Parser Token Calendar
@@ -178,7 +179,7 @@ parseCalendar = do
                 start <- satisfy (== TokenCalendarStart)
                 _ <- satisfy (== Ignore)
                 calls <- many caloptions
-                events <- (satisfy (== TokenEventStart) *> satisfy (==Ignore) *>  many eventOptions <* satisfy (== TokenEventEnd) <* satisfy (==Ignore)) <|> succeed []
+                events <- many (Event<$>(satisfy (== TokenEventStart) *> satisfy (==Ignore) *>  many eventOptions <* satisfy (== TokenEventEnd) <* satisfy (==Ignore))) <|> succeed []
                 end <- satisfy (== TokenCalendarEnd) 
                 _ <- satisfy (== Ignore)
                 return (Calendar calls events)
@@ -203,7 +204,7 @@ getString = do
             case str of
               TokenString x -> return x
               _ -> failp
-eventOptions :: Parser Token Event
+eventOptions :: Parser Token EventProp
 eventOptions =  (DTStamp <$> (satisfy (==TokenDtstamp) *> stringToDateTime <* satisfy (==Ignore))) <|>
                 (UID <$> (satisfy (==TokenUid) *> getString <* satisfy (==Ignore))) <|>
                 (DTStart <$> (satisfy (==TokenDtstart) *> stringToDateTime <* satisfy (==Ignore))) <|> 
@@ -235,7 +236,7 @@ printCall [] = ""
 printCall (Version:xs) = "VERSION:2.0" ++ "\r\n" ++ printCall xs
 printCall ((Prodid x):xs) = "PRODID:" ++ x ++ "\r\n" ++ printCall xs
 
-printEv :: [Event] -> String
+printEv :: [EventProp] -> String
 printEv [] = ""
 printEv ((DTStamp x):xs) = "DTSTAMP:" ++ printDateTime x ++ "\r\n" ++ printEv xs
 printEv ((UID x):xs) = "UID:" ++ x ++ "\r\n" ++ printEv xs
@@ -245,10 +246,11 @@ printEv ((Description x):xs) = "DESCRIPTION" ++ x ++ "\r\n" ++ printEv xs
 printEv ((Summary x):xs) = "SUMMARY:" ++ x ++ "\r\n" ++ printEv xs
 printEv ((Location x):xs) = "LOCATIOM:" ++ x ++ "\r\n" ++ printEv xs
 
-
+printEvent :: Event -> String
+printEvent (Event xs) = printEv xs
 
 printCalendar :: Calendar -> String
-printCalendar (Calendar cal ev ) = "BEGIN:VCALENDAR\r\n" ++ printCall cal ++ "BEGIN:VEVENT\r\n" ++ printEv ev ++ "END:VEVENT\r\n" ++ "END:VCALENDAR\r\n"
+printCalendar (Calendar cal ev ) = "BEGIN:VCALENDAR\r\n" ++ printCall cal ++ "BEGIN:VEVENT\r\n" ++ unwords (map printEvent ev) ++ "END:VEVENT\r\n" ++ "END:VCALENDAR\r\n"
 
 -- Exercise 10
 countEvents :: Calendar -> Int
