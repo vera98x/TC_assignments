@@ -1,12 +1,8 @@
-{-# language CPP #-}
-#if __GLASGOW_HASKELL__ >= 804
-import Prelude hiding ((*>), (<*), Monoid, mempty, foldMap, Foldable, (<>))
-#elif __GLASGOW_HASKELL__ >= 710
-import Prelude hiding ((*>), (<*), Monoid, mempty, foldMap, Foldable)
-#endif
+import Prelude hiding ((*>), (<*))
 
 import ParseLib.Abstract
 import System.Environment
+import System.IO 
 
 -- Starting Framework
 
@@ -136,11 +132,10 @@ checkDateTime dt | (unMonth(month (date dt)) < 0 || unMonth(month (date dt)) > 1
                  | otherwise = True
 
 -- Exercise 6
-data Calendar = Calendar [CalProp] [EventProp]
+data Calendar = Calendar [CalProp] [Event]
     deriving (Eq, Ord, Show)
 
-data Event = Event EventProp  deriving (Eq, Ord, Show)
-data EventProp = DTStamp DateTime | UID String | DTStart DateTime
+data Event = DTStamp DateTime | UID String | DTStart DateTime
                 | DTEnd DateTime | Description String
                 | Summary String | Location String
     deriving (Eq, Ord, Show)
@@ -157,36 +152,40 @@ scanCalendar :: Parser Char [Token]
 scanCalendar = many scanCalendar2
 
 scanCalendar2 :: Parser Char Token
-scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <|> 
-                const TokenEventEnd <$> token "END:VEVENT" <|> 
-                const TokenDtstamp <$> token "DTSTAMP:" <|> 
-                const TokenUid <$> token "UID:" <|> 
-                const TokenDtstart <$> token "DTSTART:" <|> 
-                const TokenDtend <$> token "DTEND:" <|> 
-                const TokenDescription <$> token "DESCRIPTION:" <|> 
-                const TokenSummary <$> token "SUMMARY:" <|> 
-                const TokenLocation <$> token "LOCATION:" <|> 
-                const TokenCalendarStart <$> token "BEGIN:VCALENDAR" <|> 
-                const TokenCalendarEnd <$> token "END:VCALENDAR" <|> 
-                const TokenProdid <$> token "PRODID:" <|> 
-                const TokenVersion <$> token "VERSION:2.0" <|> 
-                const Ignore <$> token "\r\n" <|> 
+scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <<|> 
+                const TokenEventEnd <$> token "END:VEVENT" <<|> 
+                const TokenDtstamp <$> token "DTSTAMP:" <<|> 
+                const TokenUid <$> token "UID:" <<|> 
+                const TokenDtstart <$> token "DTSTART:" <<|> 
+                const TokenDtend <$> token "DTEND:" <<|> 
+                const TokenDescription <$> token "DESCRIPTION:" <<|> 
+                const TokenSummary <$> token "SUMMARY:" <<|> 
+                const TokenLocation <$> token "LOCATION:" <<|> 
+                const TokenCalendarStart <$> token "BEGIN:VCALENDAR" <<|> 
+                const TokenCalendarEnd <$> token "END:VCALENDAR" <<|> 
+                const TokenProdid <$> token "PRODID:" <<|> 
+                const TokenVersion <$> token "VERSION:2.0" <<|> 
+                const Ignore <$> token "\r\n" <<|> 
                 TokenString <$> identifier
 
 test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
 test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
+test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = do
                 start <- satisfy (== TokenCalendarStart)
                 _ <- satisfy (== Ignore)
                 calls <- many caloptions
-                events <- (satisfy (== TokenEventStart) *>  many eventOptions <* satisfy (== TokenEventEnd) ) <|> succeed []
+                events <- (satisfy (== TokenEventStart) *> satisfy (==Ignore) *>  many eventOptions <* satisfy (== TokenEventEnd) <* satisfy (==Ignore)) <|> succeed []
                 end <- satisfy (== TokenCalendarEnd) 
                 _ <- satisfy (== Ignore)
                 return (Calendar calls events)
 
-isString = (\(TokenString x) -> True)
+isString :: Token -> Bool
+isString (TokenString y) = True
+isString _               = False
 
 stringToDateTime :: Parser Token DateTime
 stringToDateTime = do    
@@ -204,7 +203,7 @@ getString = do
             case str of
               TokenString x -> return x
               _ -> failp
-eventOptions :: Parser Token EventProp
+eventOptions :: Parser Token Event
 eventOptions =  (DTStamp <$> (satisfy (==TokenDtstamp) *> stringToDateTime <* satisfy (==Ignore))) <|>
                 (UID <$> (satisfy (==TokenUid) *> getString <* satisfy (==Ignore))) <|>
                 (DTStart <$> (satisfy (==TokenDtstart) *> stringToDateTime <* satisfy (==Ignore))) <|> 
@@ -221,12 +220,35 @@ recognizeCalendar s = run scanCalendar s >>= run parseCalendar
 
 -- Exercise 8
 readCalendar :: FilePath -> IO (Maybe Calendar)
-readCalendar = undefined
+readCalendar path = do
+               handle <- openFile path ReadMode 
+               hSetNewlineMode handle noNewlineTranslation 
+               content <- hGetContents handle 
+               return (recognizeCalendar content)
+
+filepath = "examples/bastille2.ics"
 
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
+printCall :: [CalProp] -> String
+printCall [] = ""
+printCall (Version:xs) = "VERSION:2.0" ++ "\r\n" ++ printCall xs
+printCall ((Prodid x):xs) = "PRODID:" ++ x ++ "\r\n" ++ printCall xs
+
+printEv :: [Event] -> String
+printEv [] = ""
+printEv ((DTStamp x):xs) = "DTSTAMP:" ++ printDateTime x ++ "\r\n" ++ printEv xs
+printEv ((UID x):xs) = "UID:" ++ x ++ "\r\n" ++ printEv xs
+printEv ((DTStart x):xs) = "DTSTART:" ++ printDateTime x ++ "\r\n" ++ printEv xs
+printEv ((DTEnd x):xs) = "DTEND:" ++ printDateTime x ++ "\r\n" ++ printEv xs
+printEv ((Description x):xs) = "DESCRIPTION" ++ x ++ "\r\n" ++ printEv xs
+printEv ((Summary x):xs) = "SUMMARY:" ++ x ++ "\r\n" ++ printEv xs
+printEv ((Location x):xs) = "LOCATIOM:" ++ x ++ "\r\n" ++ printEv xs
+
+
+
 printCalendar :: Calendar -> String
-printCalendar = undefined
+printCalendar (Calendar cal ev ) = "BEGIN:VCALENDAR\r\n" ++ printCall cal ++ "BEGIN:VEVENT\r\n" ++ printEv ev ++ "END:VEVENT\r\n" ++ "END:VCALENDAR\r\n"
 
 -- Exercise 10
 countEvents :: Calendar -> Int
