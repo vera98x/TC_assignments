@@ -3,7 +3,7 @@ import Prelude hiding ((*>), (<*))
 import ParseLib.Abstract
 import System.Environment
 import System.IO 
-
+import Data.List
 -- Starting Framework
 
 -- | "Target" datatype for the DateTime parser, i.e, the parser should produce elements of this type.
@@ -271,10 +271,17 @@ findEvents dt (Calendar cal ev) = [x | (DTStart s, DTEnd e, x) <- (getEventProp 
 t = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 00) (Minute 00) (Second 00)) True
 t2 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 5) (Minute 00) (Second 00) ) True
 t3 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 10) (Minute 00) (Second 00) ) True
-cal = Calendar [] [ (Event [(DTStart t), (DTEnd t3), (Summary "dit moet een event zijn")] ) ]
+t4 = DateTime (Date (Year 1998) (Month 11) (Day 16)) (Time (Hour 10) (Minute 00) (Second 00) ) True
+cal = Calendar [] [ (Event [(DTStart t), (DTEnd t2), (Summary "dit moet een event zijn")] ), (Event [(DTStart t3), (DTEnd t4), (Summary "dit moet een event zijn")] ), (Event [(DTStart t), (DTEnd t4), (Summary "dit moet een event zijn")] ) ]
 
 checkOverlapping :: Calendar -> Bool
-checkOverlapping = undefined
+checkOverlapping (Calendar cal ev) = checkOverlap (sort $ getEventProp ev)
+
+checkOverlap :: [(EventProp, EventProp, Event)] -> Bool
+checkOverlap [] = False
+checkOverlap [x] = False
+checkOverlap (((DTStart s), (DTEnd e), _) : x@((DTStart s1) ,(DTEnd e1),_) : xs) | s1 < e = True
+                                               | otherwise = checkOverlap (x:xs)
 
 timeSpent :: String -> Calendar -> Int
 timeSpent = undefined
