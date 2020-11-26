@@ -142,7 +142,7 @@ data Event = Event [EventProp]
 data EventProp = DTStamp DateTime | UID String | DTStart DateTime |DTEnd DateTime |Description String |
                  Summary String |Location String deriving (Eq, Ord, Show)
 
-data CalProp = Prodid String | Version deriving (Eq, Ord, Show)
+data CalProp = Prodid String | Version String deriving (Eq, Ord, Show)
 
 -- Exercise 7
 data Token = TokenEventStart | TokenEventEnd | TokenDtstamp | TokenUid |
@@ -167,7 +167,7 @@ scanCalendar2 = const [TokenEventStart] <$> token "BEGIN:VEVENT" <<|>
                 const [TokenCalendarStart] <$> token "BEGIN:VCALENDAR" <<|> 
                 const [TokenCalendarEnd] <$> token "END:VCALENDAR" <<|> 
                 const [TokenProdid] <$> token "PRODID:" <<|> 
-                const [TokenVersion] <$> token "VERSION:2.0" <<|> 
+                const [TokenVersion] <$> token "VERSION:" <<|> 
                 const [Ignore] <$> token "\r\n" <<|> 
                 (\s _ -> TokenString s : Ignore : []) <$> greedy(satisfy(/='\r')) <*> (token "\r\n") -- check directly for \r\n to make sure you dont go into infinite loop
 
@@ -215,7 +215,7 @@ eventOptions =  (DTStamp <$> (satisfy (==TokenDtstamp) *> stringToDateTime <* sa
                 (Location <$> (satisfy (==TokenLocation) *> getString <* satisfy (==Ignore)))  
 caloptions :: Parser Token CalProp
 caloptions = (Prodid <$> (satisfy (==TokenProdid) *> getString <* satisfy (==Ignore))) <|> 
-             (const Version <$> (satisfy (==TokenVersion) <* satisfy (==Ignore))) 
+             (Version <$> (satisfy (==TokenVersion) *> getString <* satisfy (==Ignore))) 
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
@@ -228,13 +228,13 @@ readCalendar path = do
                content <- hGetContents handle 
                return (recognizeCalendar content)
 
-filepath = "examples/bastille2.ics"
+filepath = "examples/bastille.ics"
 
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
 printCall :: [CalProp] -> String
 printCall [] = ""
-printCall (Version:xs) = "VERSION:2.0" ++ "\r\n" ++ printCall xs
+printCall ((Version x):xs) = "VERSION:" ++ x ++ "\r\n" ++ printCall xs
 printCall ((Prodid x):xs) = "PRODID:" ++ x ++ "\r\n" ++ printCall xs
 
 printEv :: [EventProp] -> String
