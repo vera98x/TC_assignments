@@ -151,30 +151,29 @@ data Token = TokenEventStart | TokenEventEnd | TokenDtstamp | TokenUid |
     deriving (Eq, Ord, Show)
 
 scanCalendar :: Parser Char [Token]
-scanCalendar = many scanCalendar2
+scanCalendar = do list <- many scanCalendar2
+                  return (concat list)
 
-scanCalendar2 :: Parser Char Token
-scanCalendar2 = const TokenEventStart <$> token "BEGIN:VEVENT" <<|> 
-                const TokenEventEnd <$> token "END:VEVENT" <<|> 
-                const TokenDtstamp <$> token "DTSTAMP:" <<|> 
-                const TokenUid <$> token "UID:" <<|> 
-                const TokenDtstart <$> token "DTSTART:" <<|> 
-                const TokenDtend <$> token "DTEND:" <<|> 
-                const TokenDescription <$> token "DESCRIPTION:" <<|> 
-                const TokenSummary <$> token "SUMMARY:" <<|> 
-                const TokenLocation <$> token "LOCATION:" <<|> 
-                const TokenCalendarStart <$> token "BEGIN:VCALENDAR" <<|> 
-                const TokenCalendarEnd <$> token "END:VCALENDAR" <<|> 
-                const TokenProdid <$> token "PRODID:" <<|> 
-                const TokenVersion <$> token "VERSION:2.0" <<|> 
-                const Ignore <$> token "\r\n" <<|> 
-                TokenString <$> greedy(satisfy(/='\r'))
+scanCalendar2 :: Parser Char [Token]
+scanCalendar2 = const [TokenEventStart] <$> token "BEGIN:VEVENT" <<|> 
+                const [TokenEventEnd] <$> token "END:VEVENT" <<|> 
+                const [TokenDtstamp] <$> token "DTSTAMP:" <<|> 
+                const [TokenUid] <$> token "UID:" <<|> 
+                const [TokenDtstart] <$> token "DTSTART:" <<|> 
+                const [TokenDtend] <$> token "DTEND:" <<|> 
+                const [TokenDescription] <$> token "DESCRIPTION:" <<|> 
+                const [TokenSummary] <$> token "SUMMARY:" <<|> 
+                const [TokenLocation] <$> token "LOCATION:" <<|> 
+                const [TokenCalendarStart] <$> token "BEGIN:VCALENDAR" <<|> 
+                const [TokenCalendarEnd] <$> token "END:VCALENDAR" <<|> 
+                const [TokenProdid] <$> token "PRODID:" <<|> 
+                const [TokenVersion] <$> token "VERSION:2.0" <<|> 
+                const [Ignore] <$> token "\r\n" <<|> 
+                (\s _ -> TokenString s : Ignore : []) <$> greedy(satisfy(/='\r')) <*> (token "\r\n") -- check directly for \r\n to make sure you dont go into infinite loop
 
 test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
 test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
-test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
-
-parseTest = token "\r\n" <<|> greedy(satisfy(/='\r'))
+test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:Bastille Day Party\r\nUID:uid\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = do
