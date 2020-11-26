@@ -1,9 +1,10 @@
-import Prelude hiding ((*>), (<*))
+import Prelude hiding ((*>), (<*), (<>))
 
 import ParseLib.Abstract
 import System.Environment
 import System.IO 
 import Data.List
+import Text.PrettyPrint.Boxes
 -- Starting Framework
 
 -- | "Target" datatype for the DateTime parser, i.e, the parser should produce elements of this type.
@@ -272,7 +273,7 @@ findEvents dt (Calendar cal ev) = [x | (DTStart s, DTEnd e, x) <- (getEventProp 
 t = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 00) (Minute 00) (Second 00)) True
 t2 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 5) (Minute 00) (Second 00) ) True
 t3 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 10) (Minute 00) (Second 00) ) True
-t4 = DateTime (Date (Year 1998) (Month 11) (Day 16)) (Time (Hour 10) (Minute 00) (Second 00) ) True
+t4 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 16) (Minute 00) (Second 00) ) True
 cal = Calendar [] [ (Event [(DTStart t), (DTEnd t2), (Summary "dit moet een event zijn")] ), (Event [(DTStart t3), (DTEnd t4), (Summary "dit moet een event zijn")] ), (Event [(DTStart t), (DTEnd t4), (Summary "dit moet een event zijn")] ) ]
 
 checkOverlapping :: Calendar -> Bool
@@ -299,3 +300,28 @@ timeDiff (DateTime (Date (Year y) (Month mo)( Day d)) (Time (Hour h) (Minute mi)
 ppMonth :: Year -> Month -> Calendar -> String
 ppMonth = undefined
 
+
+nestedBoxPrint b = mapM_ (mapM_ printBox) b
+
+createBoxes :: [[Box]]
+createBoxes = map (map (align center1 center1 2 7)) 
+              [[(text "1"), (text "2"),(text "3"), (text "4"), (text "5"), (text "6"), (text "7")],
+              [(text "8"), (text "9"), (text "10"), (text "11"), (text "12"), (text "13"), (text "14")]]
+
+
+withHorizontal = mapM_ printBox $ map (foldr (<>) nullBox ) createBoxes
+
+testBox = printBox b
+  where box = createBoxes
+        b = box!!(floor(5/7))!!(5`mod`7) // (align center1 center1 1 7 (text "vera"))
+
+
+--`elem` [1,3,5,7,8,10,12]
+--`elem` [4,6,9,11]
+-- 2
+
+filterWithMonth :: Year -> Month -> [(DateTime, DateTime)] -> [(DateTime, DateTime, Int)]
+filterWithMonth (Year y) (Month m) dts = [(s,e,d) | (s@(DateTime (Date (Year y1) (Month m1)( Day d)) _ _ ) , e) <- dts, m == m1 && y == y1]
+
+getDates :: Calendar -> [(DateTime, DateTime)]
+getDates (Calendar cal ev) = zip [x | (Event y) <- ev, (DTStart x) <- y] [x | (Event y) <- ev, (DTEnd x) <- y]
