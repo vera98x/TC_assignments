@@ -173,6 +173,7 @@ test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
 test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
 test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
+parseTest = token "\r\n" <<|> greedy(satisfy(/='\r'))
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = do
@@ -284,7 +285,15 @@ checkOverlap (((DTStart s), (DTEnd e), _) : x@((DTStart s1) ,(DTEnd e1),_) : xs)
                                                | otherwise = checkOverlap (x:xs)
 
 timeSpent :: String -> Calendar -> Int
-timeSpent = undefined
+timeSpent summ (Calendar cal ev) = foldr (\(t1, t2) r -> timeDiff t1 t2 + r) 0 beginEnd
+  where eventList = [e | e@(Event ep) <- ev, (Summary x) <- ep, x == summ]
+        beginEnd = zip [x | (Event y) <- eventList, (DTStart x) <- y] [x | (Event y) <- eventList, (DTEnd x) <- y]
+
+
+timeDiff :: DateTime -> DateTime -> Int
+timeDiff (DateTime (Date (Year y) (Month mo)( Day d)) (Time (Hour h) (Minute mi) (Second s)) _) 
+          (DateTime (Date (Year y1) (Month mo1)( Day d1)) (Time (Hour h1) (Minute mi1) (Second s1)) _) = (y1 - y) * 525948 + (mo1-mo)*43800 +(d1-d)*1440 +
+                                                                                                         (h1-h)*60 + (mi1-mi)
 
 -- Exercise 11
 ppMonth :: Year -> Month -> Calendar -> String
