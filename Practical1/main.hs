@@ -4,6 +4,7 @@ import ParseLib.Abstract
 import System.Environment
 import System.IO 
 import Data.List
+import Data.List.Split
 import Text.PrettyPrint.Boxes
 -- Starting Framework
 
@@ -102,21 +103,27 @@ printDate :: Date -> String
 printDate d =  printYear (year d) ++ printMonth (month d) ++ printDay (day d)
 
 printYear :: Year -> String
-printYear y = show (unYear y)
+printYear (Year y) | y < 10 = "0" ++ show y
+                   | otherwise = show y
 printMonth :: Month -> String
-printMonth m = show (unMonth m)
+printMonth (Month m) | m < 10 = "0" ++ show m
+                      | otherwise = show m
 printDay :: Day -> String
-printDay d = show (unDay d)
+printDay (Day d) | d < 10 = "0" ++ show d
+                 | otherwise = show d
 
 printTime :: Time -> String
 printTime t = printHour (hour t) ++ printMinute (minute t) ++ printSecond (second t)
 
 printHour :: Hour -> String
-printHour h = show (unHour h)
+printHour (Hour h) | h < 10 = "0" ++ show h
+                   | otherwise = show h
 printMinute :: Minute -> String
-printMinute m = show (unMinute m)
+printMinute (Minute m) | m < 10 = "0" ++ show m
+                       | otherwise = show m
 printSecond :: Second -> String
-printSecond s = show (unSecond s)
+printSecond (Second s) | s < 10 = "0" ++ show s
+                       | otherwise = show s
 
 -- Exercise 4
 parsePrint s = fmap printDateTime $ run parseDateTime s
@@ -296,31 +303,59 @@ timeDiff (DateTime (Date (Year y) (Month mo)( Day d)) (Time (Hour h) (Minute mi)
                                                                                                          (h1-h)*60 + (mi1-mi)
 
 -- Exercise 11
+--TODO deze weghalen
+endTest = do
+    res <- readCalendar "examples/rooster_infotc.ics"
+    putStrLn $ maybe "Calendar parsing error" (ppMonth (Year 2012) (Month 11)) res
+---- 
+
 ppMonth :: Year -> Month -> Calendar -> String
-ppMonth = undefined
+ppMonth y m c = intercalate ((replicate 105 '-') ++ "\n") $ map render $ map (foldr (<>) nullBox ) box1
+ where box = updateCalendar (filterWithMonth y m $ getDates c) (flatBox (unMonth m))
+       box1 = chunksOf 7 box
 
+withHorizontal :: [[Box]] -> IO()
+withHorizontal box = mapM_ printBox $ map (foldr (<>) nullBox ) box
 
-nestedBoxPrint b = mapM_ (mapM_ printBox) b
+withRender :: [[Box]] -> [String]
+withRender box = map render $ map (foldr (<>) nullBox ) box
 
-createBoxes :: [[Box]]
-createBoxes = map (map (align center1 center1 2 7)) 
-              [[(text "1"), (text "2"),(text "3"), (text "4"), (text "5"), (text "6"), (text "7")],
-              [(text "8"), (text "9"), (text "10"), (text "11"), (text "12"), (text "13"), (text "14")]]
+stringToScreen :: IO()
+stringToScreen = mapM_ putStr (withRender b1)
+  where b =  ((updateCalendar dates (flatBox 11)))         
+        b1 = chunksOf 7 b
 
+flatBox m = map (align left top 2 15) $ map (\x -> text (if x <= max then show x else "")) [1..max]
+  where max | m `elem` [1,3,5,7,8,10,12] = 31
+            | m `elem` [4,6,9,11] = 30
+            | otherwise = 29
 
-withHorizontal = mapM_ printBox $ map (foldr (<>) nullBox ) createBoxes
+printbox :: [[String]] -> IO()
+printbox box = mapM_ (mapM_ putStr) box
 
-testBox = printBox b
-  where box = createBoxes
-        b = box!!(floor(5/7))!!(5`mod`7) // (align center1 center1 1 7 (text "vera"))
+renderBox :: [Box] -> [[String]]
+renderBox b = map (map render) box
+  where box = chunksOf 7 b
 
+testing moments = withHorizontal (chunksOf 7 (updateCalendar moments fbox))
+  where fbox = flatBox 11
 
---`elem` [1,3,5,7,8,10,12]
---`elem` [4,6,9,11]
--- 2
+dates :: [(Int, (Hour, Minute), (Hour, Minute))]
+dates = replicate 2 (15, (Hour 00, Minute 00), (Hour 05, Minute 30)) ++ [(16, (Hour 00, Minute 00), (Hour 05, Minute 30))]
 
-filterWithMonth :: Year -> Month -> [(DateTime, DateTime)] -> [(DateTime, DateTime, Int)]
-filterWithMonth (Year y) (Month m) dts = [(s,e,d) | (s@(DateTime (Date (Year y1) (Month m1)( Day d)) _ _ ) , e) <- dts, m == m1 && y == y1]
+insertOne :: (Int, (Hour,Minute), (Hour,Minute)) -> [Box] -> [Box]
+insertOne (day, (hs, ms), (he, me)) b = begin ++ [box] ++ end
+  where begin = take (day-1) b
+        end = drop day b
+        box = b!!(day-1) // (align left top 2 15 (text (printHour hs ++ ":" ++ printMinute ms ++ " - " ++ printHour he ++ ":" ++ printMinute me )))
+
+updateCalendar :: [(Int, (Hour,Minute), (Hour,Minute))] -> [Box] -> [Box]
+updateCalendar [] b = b
+updateCalendar (x:xs) b = updateCalendar xs bNew
+  where bNew = insertOne x b
+
+filterWithMonth :: Year -> Month -> [(DateTime, DateTime)] -> [(Int, (Hour,Minute), (Hour,Minute))]
+filterWithMonth (Year y) (Month m) dts = sort [(d,(h,mi),(h1,mi1)) | ((DateTime (Date (Year y1) (Month m1)( Day d)) (Time h mi b ) _ ), (DateTime  dat (Time h1 mi1 b1 ) _ )) <- dts, m == m1 && y == y1]
 
 getDates :: Calendar -> [(DateTime, DateTime)]
 getDates (Calendar cal ev) = zip [x | (Event y) <- ev, (DTStart x) <- y] [x | (Event y) <- ev, (DTEnd x) <- y]
