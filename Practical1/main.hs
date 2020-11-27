@@ -149,7 +149,7 @@ data Event = Event [EventProp]
 data EventProp = DTStamp DateTime | UID String | DTStart DateTime |DTEnd DateTime |Description String |
                  Summary String |Location String deriving (Eq, Ord, Show)
 
-data CalProp = Prodid String | Version String deriving (Eq, Ord, Show)
+data CalProp = Prodid String | Version deriving (Eq, Ord, Show)
 
 -- Exercise 7
 data Token = TokenEventStart | TokenEventEnd | TokenDtstamp | TokenUid |
@@ -174,13 +174,9 @@ scanCalendar2 = const [TokenEventStart] <$> token "BEGIN:VEVENT" <<|>
                 const [TokenCalendarStart] <$> token "BEGIN:VCALENDAR" <<|> 
                 const [TokenCalendarEnd] <$> token "END:VCALENDAR" <<|> 
                 const [TokenProdid] <$> token "PRODID:" <<|> 
-                const [TokenVersion] <$> token "VERSION:" <<|> 
+                const [TokenVersion] <$> token "VERSION:2.0" <<|> 
                 const [Ignore] <$> token "\r\n" <<|> 
                 (\s _ -> TokenString s : Ignore : []) <$> greedy(satisfy(/='\r')) <*> (token "\r\n") -- check directly for \r\n to make sure you dont go into infinite loop
-
-test = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:hoi\r\nBEGIN:VEVENT"
-test2 = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
-test9 = "BEGIN:VCALENDAR\r\nPRODID:prodid2\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nSUMMARY:Bastille Day Party\r\nUID:uid\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:BastilleDayParty\r\nUID:uid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = do
@@ -222,7 +218,7 @@ eventOptions =  (DTStamp <$> (satisfy (==TokenDtstamp) *> stringToDateTime <* sa
                 (Location <$> (satisfy (==TokenLocation) *> getString <* satisfy (==Ignore)))  
 caloptions :: Parser Token CalProp
 caloptions = (Prodid <$> (satisfy (==TokenProdid) *> getString <* satisfy (==Ignore))) <|> 
-             (Version <$> (satisfy (==TokenVersion) *> getString <* satisfy (==Ignore))) 
+             (const Version <$> (satisfy (==TokenVersion) <* satisfy (==Ignore))) 
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
@@ -235,13 +231,11 @@ readCalendar path = do
                content <- hGetContents handle 
                return (recognizeCalendar content)
 
-filepath = "examples/bastille.ics"
-
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
 printCall :: [CalProp] -> String
 printCall [] = ""
-printCall ((Version x):xs) = "VERSION:" ++ x ++ "\r\n" ++ printCall xs
+printCall (Version:xs) = "VERSION:2.0" ++ "\r\n" ++ printCall xs
 printCall ((Prodid x):xs) = "PRODID:" ++ x ++ "\r\n" ++ printCall xs
 
 printEv :: [EventProp] -> String
@@ -264,23 +258,11 @@ printCalendar (Calendar cal ev ) = "BEGIN:VCALENDAR\r\n" ++ printCall cal ++ "BE
 countEvents :: Calendar -> Int
 countEvents (Calendar cal ev) = length ev
 
-isStartTime (DTStart x) = True
-isStartTime _           = False
-
-isEndTime (DTEnd x) = True
-isEndTime _         = False
-
 getEventProp :: [Event] -> [(EventProp, EventProp, Event)]
-getEventProp ev = zip3 [x | (Event y) <- ev, x <- y, isStartTime x] [x | (Event y) <- ev, x <- y, isEndTime x] [x | x <- ev]
+getEventProp ev = zip3 [x | (Event y) <- ev, x@(DTStart _) <- y] [x | (Event y) <- ev, x@(DTEnd _) <- y] [x | x <- ev]
 
 findEvents :: DateTime -> Calendar -> [Event]
 findEvents dt (Calendar cal ev) = [x | (DTStart s, DTEnd e, x) <- (getEventProp ev), dt >= s && dt < e]
-
-t = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 00) (Minute 00) (Second 00)) True
-t2 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 5) (Minute 00) (Second 00) ) True
-t3 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 10) (Minute 00) (Second 00) ) True
-t4 = DateTime (Date (Year 1998) (Month 11) (Day 15)) (Time (Hour 16) (Minute 00) (Second 00) ) True
-cal = Calendar [] [ (Event [(DTStart t), (DTEnd t2), (Summary "dit moet een event zijn")] ), (Event [(DTStart t3), (DTEnd t4), (Summary "dit moet een event zijn")] ), (Event [(DTStart t), (DTEnd t4), (Summary "dit moet een event zijn")] ) ]
 
 checkOverlapping :: Calendar -> Bool
 checkOverlapping (Calendar cal ev) = checkOverlap (sort $ getEventProp ev)
@@ -303,45 +285,16 @@ timeDiff (DateTime (Date (Year y) (Month mo)( Day d)) (Time (Hour h) (Minute mi)
                                                                                                          (h1-h)*60 + (mi1-mi)
 
 -- Exercise 11
---TODO deze weghalen
-endTest = do
-    res <- readCalendar "examples/rooster_infotc.ics"
-    putStrLn $ maybe "Calendar parsing error" (ppMonth (Year 2012) (Month 11)) res
----- 
-
 ppMonth :: Year -> Month -> Calendar -> String
 ppMonth y m c = intercalate ((replicate 105 '-') ++ "\n") $ map render $ map (foldr (<>) nullBox ) box1
  where box = updateCalendar (filterWithMonth y m $ getDates c) (flatBox (unMonth m))
        box1 = chunksOf 7 box
 
-withHorizontal :: [[Box]] -> IO()
-withHorizontal box = mapM_ printBox $ map (foldr (<>) nullBox ) box
-
-withRender :: [[Box]] -> [String]
-withRender box = map render $ map (foldr (<>) nullBox ) box
-
-stringToScreen :: IO()
-stringToScreen = mapM_ putStr (withRender b1)
-  where b =  ((updateCalendar dates (flatBox 11)))         
-        b1 = chunksOf 7 b
-
+flatBox :: Int -> [Box]
 flatBox m = map (align left top 2 15) $ map (\x -> text (if x <= max then show x else "")) [1..max]
   where max | m `elem` [1,3,5,7,8,10,12] = 31
             | m `elem` [4,6,9,11] = 30
             | otherwise = 29
-
-printbox :: [[String]] -> IO()
-printbox box = mapM_ (mapM_ putStr) box
-
-renderBox :: [Box] -> [[String]]
-renderBox b = map (map render) box
-  where box = chunksOf 7 b
-
-testing moments = withHorizontal (chunksOf 7 (updateCalendar moments fbox))
-  where fbox = flatBox 11
-
-dates :: [(Int, (Hour, Minute), (Hour, Minute))]
-dates = replicate 2 (15, (Hour 00, Minute 00), (Hour 05, Minute 30)) ++ [(16, (Hour 00, Minute 00), (Hour 05, Minute 30))]
 
 insertOne :: (Int, (Hour,Minute), (Hour,Minute)) -> [Box] -> [Box]
 insertOne (day, (hs, ms), (he, me)) b = begin ++ [box] ++ end
