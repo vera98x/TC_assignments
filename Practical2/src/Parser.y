@@ -2,9 +2,6 @@
 module Parser where
 
 import Model
-
-parseError :: [Token] -> a
-parseError _ = error "Parse error"
 }
 
 %name parse
@@ -13,8 +10,8 @@ parseError _ = error "Parse error"
 
 %token 
   string_   {TIdent $$}
-  arrow     {Tarrow}
-  dot       {Tdot}
+  arrow     {TArrow}
+  dot       {TDot}
   comma     {TComma}
   go        {Tgo}
   take      {Ttake}
@@ -44,7 +41,7 @@ Prules : Prule {[$1]}
 Prule :  string_ arrow Pcmds dot {Rule $1 $3}
 
 Pcmds : {- empty -}  { Cmds_ }
-Pcmds : Pcmd comma PMultCmds {CMDS $1 $3}
+Pcmds : Pcmd comma PMultCmds {Cmds $1 $3}
 
 PMultCmds : Pcmd {[$1]}
           | Pcmd PMultCmds {$1 : $2}
@@ -68,9 +65,14 @@ PMultAlts : Palt {[$1]}
 
 Palt : Ppat arrow Pcmds {Alt $1 $3}
 
-Ppat : empty {Empty}
-     | lambda {Lambda}
-     | debris {Debris}
-     | asteroid {Asteroid}
-     | boundary {Boundary}
-     | underscore {Underscore}
+Ppat : empty {EMPTY}
+     | lambda {LAMBDA}
+     | debris {DEBRIS}
+     | asteroid {ASTEROID}
+     | boundary {BOUNDARY}
+     | underscore {UNDERSCORE}
+
+{
+parseError :: [Token] -> a
+parseError _ = error "Parse error"
+}

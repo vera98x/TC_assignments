@@ -18,4 +18,4 @@ data Cmd = GO | TAKE | MARK | NOTHING |
 data Dir = LEFT | RIGHT | FRONT
 data Alts = Alts_ | Alts Alt [Alt]
 data Alt = Alt Pat Cmds
-data Pat = Empty | Lambda | Debris | Asteroid | Boundary | Underscore
+data Pat = EMPTY | LAMBDA | DEBRIS | ASTEROID | BOUNDARY | UNDERSCORE

@@ -1,5 +1,6 @@
 import Prelude hiding ((*>), (<*))
 import ParseLib.Abstract
+import Data.Char
 
 
 data Decalls = Decalls [Prop] deriving (Show)
@@ -16,7 +17,7 @@ data RemoveTick = RemoveTick Int deriving(Show)
 
 
 spaces :: Parser Char String
-spaces = greedy (satisfy (== ' ')) <|> greedy (satisfy (== '\t'))
+spaces = greedy (satisfy (isSpace))  --isSpace
 
 ending :: Parser Char String
 ending = (token "'"  <|> succeed "") <* token "," <* token "\r" <* token "\n"
@@ -31,6 +32,7 @@ data Token = TType String | TName0 String | TName1 String | TScale Int Int Int |
              TFarCutoff Int | TNearCutoff Int | TRemoveTick Int deriving Show
 
 test = "Decals = {\r\n    ['0'] = {\r\n        type = 'Normals',\r\n        name0 = '/env/common/decals/lowshore004_normals.dds',\r\n        name1 = '',\r\n        scale = { 56, 56, 56 },\r\n        position = { 834, 56, 733 },\r\n        euler = { -0, 6, 0 },\r\n        far_cutoff = 545454,\r\n        near_cutoff = 0,\r\n        remove_tick = 0, \r\n    }\r\n    }\r\n}"
+test2 = "    ['0'] = {\r\n        type = 'Normals',\r\n        name0 = '/env/common/decals/lowshore004_normals.dds',\r\n        name1 = '',\r\n        scale = { 56, 56, 56 },\r\n        position = { 834, 56, 733 },\r\n        euler = { -0, 6, 0 },\r\n        far_cutoff = 545454,\r\n        near_cutoff = 0,\r\n        remove_tick = 0, \r\n    }\r\n    }\r\n}"
 
 scanWK :: Parser Char [Token]
 scanWK = do
@@ -38,8 +40,8 @@ scanWK = do
          tokens <- many everyList
          return (concat tokens)
 
-everyList = pack (spaces *> symbol '[') (anySymbol *> anySymbol <* anySymbol) (symbol ']') *> 
-            pack (spaces *> symbol '=' *> spaces) (many options) (symbol '}' *> ending)
+everyList = pack (spaces *> token "['") (digit) (token "']") *> 
+            pack (spaces *> symbol '=' *> spaces *> symbol '{' *> token "\r\n") (many options) (symbol '}' *> ending)
 
 options :: Parser Char Token       
 options = TType <$> (spaces *> token "type" *> pack begin identifier ending ) <|>
