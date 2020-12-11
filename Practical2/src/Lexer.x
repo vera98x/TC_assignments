@@ -14,6 +14,7 @@ tokens :-
   "--".*				        ;
   \.					          { \s -> TDot }
   \,                    {\s -> TComma}
+  \->                    {\s -> TArrow}
   go                    {\s -> Tgo}
   take                  {\s -> Ttake}
   mark                  {\s -> Tmark}
@@ -34,3 +35,6 @@ tokens :-
   \_                    {\s -> TUnderscore}
   $ident+               {\s -> TIdent s}
 
+{
+  
+}

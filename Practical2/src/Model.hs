@@ -4,7 +4,7 @@ module Model where
 data Token = TArrow | TDot | TComma | Tgo | Ttake |Tmark | Tnothing | Tturn | Tcase | Tof | Tend
 			| Tleft | Tright | Tfront | Tsemicolon
 			| TEmpty | TLambda | TDebris | TAsteroid | TBoundary | TUnderscore
-			| TIdent String
+			| TIdent String deriving Show
 
 
 -- Exercise 2

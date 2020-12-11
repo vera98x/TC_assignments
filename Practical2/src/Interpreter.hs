@@ -73,8 +73,8 @@ printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
 
 
 -- These three should be defined by you
-type Ident = ()
-type Commands = ()
+type Ident = String
+type Commands = Cmds
 type Heading = ()
 
 type Environment = Map Ident Commands
@@ -86,10 +86,20 @@ data Step =  Done  Space Pos Heading
           |  Ok    ArrowState
           |  Fail  String
 
+
+main2 = do 
+       s <- readFile "../examples/Add.arrow"
+       putStr (show(alexScanTokens s))
+
 -- | Exercise 8
+-- rule: string -> Cmds .
 toEnvironment :: String -> Environment
 toEnvironment = undefined
 
+-- Lex string -> parse tokens. 
+
+
+check = undefined
 -- | Exercise 9
 step :: Environment -> ArrowState -> Step
 step = undefined
