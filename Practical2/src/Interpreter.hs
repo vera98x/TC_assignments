@@ -55,16 +55,21 @@ contentsTable =  [ (Empty   , '.' )
                  , (Asteroid, 'O' )
                  , (Boundary, '#' )]
 
+main = do 
+       s <- readFile "../examples/Maze.space"
+       let (space:ss) = ParseLib.Abstract.parse parseSpace s
+       putStr (printSpace (fst space))
+ 
 
 -- Exercise 7
 printSpace :: Space -> String
-printSpace s = intercalate "\n" (chunksOf r (L.foldr f [] s))
+printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
   where f x r = (lu x) : r
         lu :: Contents -> Char
         lu c' = case [ch | (c,ch) <- contentsTable, c == c'] of
                 (x:xs) -> x
-                otherwise -> ' '
-        ((r,h), _) = L.findMax s
+                otherwise -> '?'
+        ((h,r), _) = L.findMax s
 
 
 -- These three should be defined by you
