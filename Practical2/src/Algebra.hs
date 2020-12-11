@@ -4,6 +4,7 @@ import Model
 
 
 -- Exercise 5
+{-
 type Algebra r = ([r]      -> r, --Program
                 String -> r -> r, -- Rule
                 r,           -- Cmds empty
@@ -29,9 +30,9 @@ type Algebra r = ([r]      -> r, --Program
                 r           -- UNDERSCORE
                 )
 
-fold :: Algebra r-> Program -> r
+fold :: Algebra r -> Program -> r
 fold (aProgram, aRule, aCmdsE, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE, aCMD, aLEFT, 
-      aRIGHT, aFRONT, aAltsE, aAlts, aAlt, aEMPTY, aLAMBDA, aDEBRIS, aASTEROID, aBOUNDARY, aUNDERSCORE) = f
+      aRIGHT, aFRONT, aAltsE, aAlts, aAlt, aEMPTY, aLAMBDA, aDEBRIS, aASTEROID, aBOUNDARY, aUNDERSCORE) p = f p
       where f (Program rs) = aProgram (map f rs)
             f (Rule s c) =  aRule s (f c)
             f (Cmds_) = aCmdsE
@@ -57,7 +58,7 @@ fold (aProgram, aRule, aCmdsE, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE,
             f (UNDERSCORE) = aUNDERSCORE
 
 
-             
+-}             
 
 
 

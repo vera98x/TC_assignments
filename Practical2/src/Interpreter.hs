@@ -6,6 +6,10 @@ import Prelude hiding ((<*), (<$))
 import Data.Map (Map)
 import qualified Data.Map as L
 
+import Data.List.Split
+import Data.List
+
+
 import Data.Char (isSpace)
 import Control.Monad (replicateM)
 
@@ -15,7 +19,7 @@ import Model
 import Algebra
 
 
-data Contents  =  Empty | Lambda | Debris | Asteroid | Boundary
+data Contents  =  Empty | Lambda | Debris | Asteroid | Boundary deriving Eq
 
 type Size      =  Int
 type Pos       =  (Int, Int)
@@ -54,7 +58,13 @@ contentsTable =  [ (Empty   , '.' )
 
 -- Exercise 7
 printSpace :: Space -> String
-printSpace = undefined
+printSpace s = intercalate "\n" (chunksOf r (L.foldr f [] s))
+  where f x r = (lu x) : r
+        lu :: Contents -> Char
+        lu c' = case [ch | (c,ch) <- contentsTable, c == c'] of
+                (x:xs) -> x
+                otherwise -> ' '
+        ((r,h), _) = L.findMax s
 
 
 -- These three should be defined by you
