@@ -1,7 +1,7 @@
 module Interpreter where
 
 import ParseLib.Abstract
-import Prelude hiding ((<*), (<$))
+import Prelude hiding ((<*), (<$), lookup)
 
 import Data.Map (Map)
 import qualified Data.Map as L
@@ -75,7 +75,7 @@ printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
 -- These three should be defined by you
 type Ident = String
 type Commands = Cmds
-type Heading = ()
+data Heading = HLeft | HRight | HUp | HDown -- is this ok?
 
 type Environment = Map Ident Commands
 
@@ -106,8 +106,50 @@ maine = do
        putStr (show (toEnvironment s)) 
 
 check = undefined
+
 -- | Exercise 9
+
+updatePos :: Pos -> Heading -> Pos
+updatePos (x,y) HLeft  = ((x-1),  y)
+updatePos (x,y) HRight = ((x+1),  y)
+updatePos (x,y) HUp    = (x    ,y-1)
+updatePos (x,y) HDown  = (x    ,y+1)
+
+updateHeading :: Heading -> Dir -> Heading
+updateHeading HLeft LEFT = HDown
+updateHeading HLeft RIGHT = HUp
+updateHeading HUp LEFT = HLeft
+updateHeading HUp RIGHT = HRight
+updateHeading HRight LEFT = HUp
+updateHeading HRight RIGHT = HDown
+updateHeading HDown LEFT = HLeft
+updateHeading HDown RIGHT = HRight
+updateHeading h    FRONT = h
+
+
 step :: Environment -> ArrowState -> Step
-step = undefined
+step env as@(ArrowState space pos heading (Cmds stack) ) = 
+  case stack of
+  (GO : xs) -> case L.lookup newPos space of
+              (Just Empty)  -> Ok (ArrowState space newPos heading (Cmds xs))
+              (Just Lambda) -> Ok (ArrowState space newPos heading (Cmds xs))
+              (Just Debris) -> Ok (ArrowState space newPos heading (Cmds xs))
+              _             -> Ok as
+
+  (TAKE : xs) -> case L.lookup pos space of
+              (Just Lambda) -> Ok (ArrowState (L.insert pos Empty space) pos heading (Cmds xs))
+              (Just Debris) -> Ok (ArrowState (L.insert pos Empty space) pos heading (Cmds xs))
+              _             -> Ok as
+  (MARK : xs) ->  Ok (ArrowState (L.insert pos Lambda space) pos heading (Cmds xs))
+  (NOTHING : xs) -> Ok as 
+  ((TURN dir) : xs) -> Ok (ArrowState space pos (updateHeading heading dir) (Cmds xs))
+  -- ((Case x y ) : xs) = 
+  ((CMD s) : xs) ->  case L.lookup s env of
+              Nothing -> Fail ("Cannot find command \"" ++ s ++ "\"")
+              Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) )
+              Just (Cmds_ ) -> Ok as
+  [] -> Done space pos heading
+
+  where newPos = updatePos pos heading
 
 

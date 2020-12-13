@@ -245,7 +245,7 @@ happyReduce_6 = happySpecReduce_2  7 happyReduction_6
 happyReduction_6 (HappyAbsSyn8  happy_var_2)
 	(HappyAbsSyn9  happy_var_1)
 	 =  HappyAbsSyn7
-		 (Cmds happy_var_1 happy_var_2
+		 (Cmds (happy_var_1:happy_var_2)
 	)
 happyReduction_6 _ _  = notHappyAtAll 
 
@@ -340,7 +340,7 @@ happyReduce_20 = happySpecReduce_2  11 happyReduction_20
 happyReduction_20 (HappyAbsSyn12  happy_var_2)
 	(HappyAbsSyn13  happy_var_1)
 	 =  HappyAbsSyn11
-		 (Alts happy_var_1 happy_var_2
+		 (Alts (happy_var_1:happy_var_2)
 	)
 happyReduction_20 _ _  = notHappyAtAll 
 
