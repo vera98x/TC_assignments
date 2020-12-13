@@ -94,15 +94,16 @@ main2 = do
 mainp = do 
        s <- readFile "../examples/Add.arrow"
        let t = (alexScanTokens s)
-       putStr (show (Parser.parseTokens t))
+       putStr (show (Parser.parseTokens t)) 
 
 -- | Exercise 8
--- rule: string -> Cmds .
 toEnvironment :: String -> Environment
-toEnvironment = undefined
+toEnvironment s = foldr (\(Rule rstr cs) m -> L.insert rstr cs m) L.empty rs
+  where p@(Program rs) = Parser.parseTokens $ alexScanTokens s
 
--- Lex string -> parse tokens. 
-
+maine = do 
+       s <- readFile "../examples/Add.arrow"
+       putStr (show (toEnvironment s)) 
 
 check = undefined
 -- | Exercise 9
