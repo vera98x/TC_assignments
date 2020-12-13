@@ -4,7 +4,7 @@ module Parser where
 import Model
 }
 
-%name parse
+%name parseTokens
 %tokentype { Token }
 %error { parseError }
 
@@ -13,18 +13,18 @@ import Model
   arrow     {TArrow}
   dot       {TDot}
   comma     {TComma}
-  go        {Tgo}
-  take      {Ttake}
-  mark      {Tmark}
-  nothing   {Tnothing}
-  turn      {Tturn}
-  case      {Tcase}
-  of        {Tof}
-  end       {Tend}
-  left      {Tleft}
-  right     {Tright}
-  front     {Tfront}
-  semicolon {Tsemicolon}
+  go        {TGo}
+  take      {TTake}
+  mark      {TMark}
+  nothing   {TNothing}
+  turn      {TTurn}
+  case      {TCase}
+  of        {TOf}
+  end       {TEnd}
+  left      {TLeft}
+  right     {TRight}
+  front     {TFront}
+  semicolon {TSemicolon}
   empty     {TEmpty}
   lambda    {TLambda}
   debris    {TDebris}
@@ -41,10 +41,10 @@ Prules : Prule {[$1]}
 Prule :  string_ arrow Pcmds dot {Rule $1 $3}
 
 Pcmds : {- empty -}  { Cmds_ }
-Pcmds : Pcmd comma PMultCmds {Cmds $1 $3}
+      | Pcmd PMultCmds {Cmds $1 $2}
 
-PMultCmds : Pcmd {[$1]}
-          | Pcmd PMultCmds {$1 : $2}
+PMultCmds : {- empty -} {[]}
+          | comma Pcmd PMultCmds {$2 : $3}
 
 Pcmd : go {GO}
      | take {TAKE}
@@ -53,6 +53,7 @@ Pcmd : go {GO}
      | turn Pdir {TURN $2}
      | case Pdir of Palts end {CASE $2 $4}
      | string_ {CMD $1}
+
 Pdir : left {LEFT}
      | right {RIGHT}
      | front {FRONT}
@@ -60,8 +61,8 @@ Pdir : left {LEFT}
 Palts : {- empty -}  { Alts_ }
       | Palt PMultAlts {Alts $1 $2}
 
-PMultAlts : Palt {[$1]}
-          | Palt semicolon PMultAlts {$1 : $3}
+PMultAlts : {- empty -} {[]}
+          | semicolon Palt PMultAlts {$2 : $3}
 
 Palt : Ppat arrow Pcmds {Alt $1 $3}
 

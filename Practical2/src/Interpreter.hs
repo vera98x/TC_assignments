@@ -91,6 +91,11 @@ main2 = do
        s <- readFile "../examples/Add.arrow"
        putStr (show(alexScanTokens s))
 
+mainp = do 
+       s <- readFile "../examples/Add.arrow"
+       let t = (alexScanTokens s)
+       putStr (show (Parser.parseTokens t))
+
 -- | Exercise 8
 -- rule: string -> Cmds .
 toEnvironment :: String -> Environment

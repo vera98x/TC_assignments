@@ -14,19 +14,19 @@ tokens :-
   "--".*				        ;
   \.					          { \s -> TDot }
   \,                    {\s -> TComma}
-  \->                    {\s -> TArrow}
-  go                    {\s -> Tgo}
-  take                  {\s -> Ttake}
-  mark                  {\s -> Tmark}
-  nothing               {\s -> Tnothing}
-  turn                  {\s -> Tturn}
-  case                  {\s -> Tcase}
-  of                    {\s -> Tof}
-  end                   {\s -> Tend}
-  left                  {\s -> Tleft}
-  right                 {\s -> Tright}
-  front                 {\s -> Tfront}
-  \;                    {\s -> Tsemicolon}
+  \->                   {\s -> TArrow}
+  go                    {\s -> TGo}
+  take                  {\s -> TTake}
+  mark                  {\s -> TMark}
+  nothing               {\s -> TNothing}
+  turn                  {\s -> TTurn}
+  case                  {\s -> TCase}
+  of                    {\s -> TOf}
+  end                   {\s -> TEnd}
+  left                  {\s -> TLeft}
+  right                 {\s -> TRight}
+  front                 {\s -> TFront}
+  \;                    {\s -> TSemicolon}
   Empty                 {\s -> TEmpty}
   Lambda                {\s -> TLambda}
   Debris                {\s -> TDebris}
