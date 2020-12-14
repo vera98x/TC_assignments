@@ -19,7 +19,7 @@ import Model
 import Algebra
 
 
-data Contents  =  Empty | Lambda | Debris | Asteroid | Boundary deriving Eq
+data Contents  =  Empty | Lambda | Debris | Asteroid | Boundary deriving (Eq, Show)
 
 type Size      =  Int
 type Pos       =  (Int, Int)
@@ -75,16 +75,16 @@ printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
 -- These three should be defined by you
 type Ident = String
 type Commands = Cmds
-data Heading = HLeft | HRight | HUp | HDown -- is this ok?
+data Heading = HLeft | HRight | HUp | HDown deriving Show-- is this ok?
 
 type Environment = Map Ident Commands
 
-type Stack       =  Commands
-data ArrowState  =  ArrowState Space Pos Heading Stack
+type Stack       =  Commands 
+data ArrowState  =  ArrowState Space Pos Heading Stack deriving Show
 
 data Step =  Done  Space Pos Heading
           |  Ok    ArrowState
-          |  Fail  String
+          |  Fail  String deriving Show
 
 
 main2 = do 
@@ -126,8 +126,26 @@ updateHeading HDown LEFT = HLeft
 updateHeading HDown RIGHT = HRight
 updateHeading h    FRONT = h
 
+updatePosWDir :: Pos -> Dir -> Pos
+updatePosWDir (x,y) LEFT = (x-1,y)
+updatePosWDir (x,y) RIGHT = (x+1, y)
+updatePosWDir (x,y) FRONT = (x,y)
+
+
+mains = do
+       s <- readFile "../examples/Maze.space"
+       let (space:ss) = ParseLib.Abstract.parse parseSpace s
+       a <- readFile "../examples/Add.arrow"
+       let env = (toEnvironment a)
+       putStr ("\n" ++ (show env) ++ "\n\n")
+       let as = ArrowState (fst space) (0,0) HRight (Cmds [(CASE RIGHT 
+                                                            (Alts [(Alt LAMBDA (Cmds([GO, GO, GO, GO,GO, MARK])))])
+                                                          )])
+       putStr (show (step env as)) 
+
 
 step :: Environment -> ArrowState -> Step
+step env as@(ArrowState space pos heading (Cmds_) ) = Done space pos heading 
 step env as@(ArrowState space pos heading (Cmds stack) ) = 
   case stack of
   (GO : xs) -> case L.lookup newPos space of
@@ -143,13 +161,32 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
   (MARK : xs) ->  Ok (ArrowState (L.insert pos Lambda space) pos heading (Cmds xs))
   (NOTHING : xs) -> Ok as 
   ((TURN dir) : xs) -> Ok (ArrowState space pos (updateHeading heading dir) (Cmds xs))
-  -- ((Case x y ) : xs) = 
+  ((CASE x (Alts_) ) : xs) -> Ok as
+  ((CASE x (Alts alts) ) : xs) -> let content = case L.lookup (updatePosWDir pos x) space of 
+                                                  Nothing -> Boundary
+                                                  Just c -> c in
+                                      let list = [cmds | (Alt pat cmds) <- alts, (isSame content pat)] in
+                                        case list of 
+                                          [] -> Fail ("Did not create option " ++ (show content) ++ " in case of\n") 
+                                          (x:_)  -> case x of 
+                                                      (Cmds_)  -> Ok as
+                                                      (Cmds l) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) )
+                     
   ((CMD s) : xs) ->  case L.lookup s env of
-              Nothing -> Fail ("Cannot find command \"" ++ s ++ "\"")
-              Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) )
-              Just (Cmds_ ) -> Ok as
+                    Nothing -> Fail ("Cannot find command \"" ++ s ++ "\"")
+                    Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) )
+                    Just (Cmds_ ) -> Ok as
   [] -> Done space pos heading
 
   where newPos = updatePos pos heading
+        isSame :: Contents -> Pat -> Bool
+        isSame Lambda LAMBDA = True
+        isSame Empty EMPTY = True
+        isSame Debris DEBRIS = True
+        isSame Asteroid ASTEROID = True
+        isSame Boundary BOUNDARY = True
+        isSame _        UNDERSCORE = True
+        isSame _        _        = False
+        
 
 
