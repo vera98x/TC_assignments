@@ -4,23 +4,22 @@ import Model
 
 
 -- Exercise 5
-{-
 type Algebra r = ([r]      -> r, --Program
                 String -> r -> r, -- Rule
                 r,           -- Cmds empty
-                r -> r -> r, -- Cmds
+                [r] -> r,      -- Cmds
                 r,           -- GO
                 r,           -- TAKE
                 r,           -- MARK
                 r,           -- NOTHING       
-                r -> r,    -- TURN
+                r -> r,      -- TURN
                 r -> r -> r, -- CASE
                 String -> r, -- CMD with string
                 r,           -- LEFT
                 r,           -- RIGHT
                 r,           -- FRONT
                 r,           -- Alts empty
-                r -> r -> r, -- Alts
+                [r] -> r,    -- Alts
                 r -> r -> r, -- Alt
                 r,           -- EMPTY   
                 r,           -- LAMBDA
@@ -33,34 +32,29 @@ type Algebra r = ([r]      -> r, --Program
 fold :: Algebra r -> Program -> r
 fold (aProgram, aRule, aCmdsE, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE, aCMD, aLEFT, 
       aRIGHT, aFRONT, aAltsE, aAlts, aAlt, aEMPTY, aLAMBDA, aDEBRIS, aASTEROID, aBOUNDARY, aUNDERSCORE) p = f p
-      where f (Program rs) = aProgram (map f rs)
-            f (Rule s c) =  aRule s (f c)
-            f (Cmds_) = aCmdsE
-            f (Cmds c cs) = aCmds (f c) (map f cs)
-            f (GO) = aGO
-            f (TAKE) = aTAKE
-            f (MARK) = aMARK
-            f (NOTHING) = aNOTHING
-            f (TURN d) = aTURN (f d)
-            f (CASE d a) = aCASE (f d) (f a)
-            f (CMD s) = aCMD s
-            f (LEFT) = aLEFT
-            f (RIGHT) = aRIGHT
-            f (FRONT) = aFRONT
-            f (Alts_) = aAltsE
-            f (Alts a as) = aAlts (f a) (map f as)
-            f (Alt p cmds) = aAlt (f p) (f cmds)
-            f (EMPTY) = aEMPTY
-            f (LAMBDA) = aLAMBDA
-            f (DEBRIS) = aDEBRIS
-            f (ASTEROID) = aASTEROID
-            f (BOUNDARY) = aBOUNDARY
-            f (UNDERSCORE) = aUNDERSCORE
-
-
--}             
-
-
+      where f (Program rs) = aProgram (map fr rs)
+            fr (Rule s c) =  aRule s (fcs c)
+            fcs (Cmds_) = aCmdsE
+            fcs (Cmds cs) = aCmds (map fc cs)
+            fc (GO) = aGO
+            fc (TAKE) = aTAKE
+            fc (MARK) = aMARK
+            fc (NOTHING) = aNOTHING
+            fc (TURN d) = aTURN (fd d)
+            fc (CASE d a) = aCASE (fd d) (fas a)
+            fc (CMD s) = aCMD s
+            fd (LEFT) = aLEFT
+            fd (RIGHT) = aRIGHT
+            fd (FRONT) = aFRONT
+            fas (Alts_) = aAltsE
+            fas (Alts as) = aAlts (map fa as)
+            fa (Alt p cmds) = aAlt (fp p) (fcs cmds)
+            fp (EMPTY) = aEMPTY
+            fp (LAMBDA) = aLAMBDA
+            fp (DEBRIS) = aDEBRIS
+            fp (ASTEROID) = aASTEROID
+            fp (BOUNDARY) = aBOUNDARY
+            fp (UNDERSCORE) = aUNDERSCORE
 
 
 -- Exercise 6

@@ -143,7 +143,6 @@ mains = do
                                                           )])
        putStr (show (step env as)) 
 
-
 step :: Environment -> ArrowState -> Step
 step env as@(ArrowState space pos heading (Cmds_) ) = Done space pos heading 
 step env as@(ArrowState space pos heading (Cmds stack) ) = 
