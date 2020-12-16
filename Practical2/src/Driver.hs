@@ -4,30 +4,86 @@ import Algebra
 import Model
 import Interpreter
 import ParseLib.Abstract -----delete later
+import Parser            -----delete later
+import Lexer            -----delete later
 
 
+main3 :: IO()
 main3 = do
-       s <- readFile "../examples/Maze.space"
+       s <- readFile "../examples/AddInput.space"
        let (space:ss) = ParseLib.Abstract.parse parseSpace s
        a <- readFile "../examples/Add.arrow"
        let env = (toEnvironment a)
-       putStr ("\n" ++ (show env) ++ "\n\n")
-       let as = ArrowState (fst space) (0,0) HRight (Cmds [(CASE RIGHT 
-                                                            (Alts [(Alt LAMBDA (Cmds([GO, GO, GO, GO,GO, MARK])))])
-                                                          )])
-       return (interactive env as)
+       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
+       let as = ArrowState (fst space) (0,0) East (cmds)
+       interactive env as
+
+main4 :: IO()
+main4 = do
+       s <- readFile "../examples/AddInput.space"
+       let (space:ss) = ParseLib.Abstract.parse parseSpace s
+       a <- readFile "../examples/Add.arrow"
+       let env = (toEnvironment a)
+       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
+       let as = ArrowState (fst space) (0,0) East (cmds)
+       let (s, p, h) = batch env as
+       putStr (printSpace s)
 
 -- Exercise 11
+
+printStatement :: Step -> IO()
+printStatement (Fail s) = putStr ("Fail: " ++ s)
+printStatement (Done s p h) = putStr (printSpace(s) ++ "Done!\n" )
+printStatement (Ok newAs@(ArrowState s p h st)) = putStr (printSpace s)
+
 interactive :: Environment -> ArrowState -> IO ()
 interactive env as = do
                      let newStep = (step env as)
+                     _ <- printStatement newStep
                      case newStep of
-                       (Fail s) -> putStr (s)
-                       (Done s p h) -> putStr (printSpace(s) ++ "Done!\n" )
-                       (Ok newAs@(ArrowState s p h st)) -> let _ = putStr (printSpace s)
-                                                               x = getLine in
-                                                               interactive env newAs
-                     return ()
+                       (Ok newAs@(ArrowState s p h st)) -> do getLine 
+                                                              putStr (show p)
+                                                              putStr ((show st) ++ "\n")
+                                                              putStr ((show h)++ "\n")
+                                                              putStr ((show s)++ "\n")
+                                                              
+                                                              interactive env newAs
+                       _ -> return ()
 
 batch :: Environment -> ArrowState -> (Space, Pos, Heading)
-batch = undefined
+batch env as = do
+              let newStep = (step env as)
+              case newStep of
+                     (Ok newAs@(ArrowState s p h st)) -> do 
+                                                         batch env newAs
+                     (Done s p h) -> (s, p, h)
+
+main_ :: IO()
+main_ = do
+       putStr "Which spacefile do you want to use?"
+       spaceInput <- getLine
+       s <- readFile spaceInput --"../examples/AddInput.space"
+       let (space:ss) = ParseLib.Abstract.parse parseSpace s
+       putStr "Which arrowfile do you want to use?"
+       arrowInput <- getLine
+       a <- readFile arrowInput --"../examples/Add.arrow"
+       let env = (toEnvironment a)
+       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
+       putStr "Which x position do you want to use?"
+       x_ <- getLine
+       let x = read x_ :: Int
+       putStr "Which y position do you want to use?"
+       y_ <- getLine 
+       let y = read y_ :: Int 
+
+       putStr "Which heading do you want to use: e, n, w, s?"
+       h <-  getLine
+       let heading = case h of
+                  "e" -> East
+                  "n" -> North
+                  "w" -> West
+                  "s" -> South
+       let as = ArrowState (fst space) (x,y) heading (cmds)
+       let (s, p, h) = batch env as
+       putStr (printSpace s)
+       

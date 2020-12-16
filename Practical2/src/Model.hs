@@ -18,4 +18,4 @@ data Cmd = GO | TAKE | MARK | NOTHING |
 data Dir = LEFT | RIGHT | FRONT  deriving Show
 data Alts = Alts_ | Alts [Alt] deriving Show
 data Alt = Alt Pat Cmds deriving Show
-data Pat = EMPTY | LAMBDA | DEBRIS | ASTEROID | BOUNDARY | UNDERSCORE deriving Show
+data Pat = EMPTY | LAMBDA | DEBRIS | ASTEROID | BOUNDARY | UNDERSCORE deriving (Show, Eq)

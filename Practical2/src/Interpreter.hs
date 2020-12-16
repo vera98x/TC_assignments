@@ -75,7 +75,7 @@ printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
 -- These three should be defined by you
 type Ident = String
 type Commands = Cmds
-data Heading = HLeft | HRight | HUp | HDown deriving Show-- is this ok?
+data Heading = West | East | North | South deriving Show-- is this ok?
 
 type Environment = Map Ident Commands
 
@@ -110,26 +110,26 @@ check = undefined
 -- | Exercise 9
 
 updatePos :: Pos -> Heading -> Pos
-updatePos (x,y) HLeft  = ((x-1),  y)
-updatePos (x,y) HRight = ((x+1),  y)
-updatePos (x,y) HUp    = (x    ,y-1)
-updatePos (x,y) HDown  = (x    ,y+1)
+updatePos (x,y) West  = (x,  y-1)
+updatePos (x,y) East  = (x,  y+1)
+updatePos (x,y) North = (x-1,  y)
+updatePos (x,y) South = (x+1,  y)
 
 updateHeading :: Heading -> Dir -> Heading
-updateHeading HLeft LEFT = HDown
-updateHeading HLeft RIGHT = HUp
-updateHeading HUp LEFT = HLeft
-updateHeading HUp RIGHT = HRight
-updateHeading HRight LEFT = HUp
-updateHeading HRight RIGHT = HDown
-updateHeading HDown LEFT = HLeft
-updateHeading HDown RIGHT = HRight
+updateHeading West LEFT = South
+updateHeading West RIGHT = North
+updateHeading North LEFT = West
+updateHeading North RIGHT = East
+updateHeading East LEFT = North
+updateHeading East RIGHT = South
+updateHeading South LEFT = East
+updateHeading South RIGHT = West
 updateHeading h    FRONT = h
 
-updatePosWDir :: Pos -> Dir -> Pos
-updatePosWDir (x,y) LEFT = (x-1,y)
-updatePosWDir (x,y) RIGHT = (x+1, y)
-updatePosWDir (x,y) FRONT = (x,y)
+updatePosWDir :: Pos -> Dir -> Heading -> Pos
+updatePosWDir (x,y) LEFT _ =  (x, y-1)
+updatePosWDir (x,y) RIGHT _ = (x, y+1)
+updatePosWDir pos FRONT h = updatePos pos h
 
 
 mains = do
@@ -138,7 +138,7 @@ mains = do
        a <- readFile "../examples/Add.arrow"
        let env = (toEnvironment a)
        putStr ("\n" ++ (show env) ++ "\n\n")
-       let as = ArrowState (fst space) (0,0) HRight (Cmds [(CASE RIGHT 
+       let as = ArrowState (fst space) (0,0) East (Cmds [(CASE RIGHT 
                                                             (Alts [(Alt LAMBDA (Cmds([GO, GO, GO, GO,GO, MARK])))])
                                                           )])
        putStr (show (step env as)) 
@@ -151,30 +151,30 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
               (Just Empty)  -> Ok (ArrowState space newPos heading (Cmds xs))
               (Just Lambda) -> Ok (ArrowState space newPos heading (Cmds xs))
               (Just Debris) -> Ok (ArrowState space newPos heading (Cmds xs))
-              _             -> Ok as
+              _             -> ignore xs
 
   (TAKE : xs) -> case L.lookup pos space of
               (Just Lambda) -> Ok (ArrowState (L.insert pos Empty space) pos heading (Cmds xs))
               (Just Debris) -> Ok (ArrowState (L.insert pos Empty space) pos heading (Cmds xs))
-              _             -> Ok as
+              _             -> ignore xs
   (MARK : xs) ->  Ok (ArrowState (L.insert pos Lambda space) pos heading (Cmds xs))
-  (NOTHING : xs) -> Ok as 
+  (NOTHING : xs) -> ignore xs
   ((TURN dir) : xs) -> Ok (ArrowState space pos (updateHeading heading dir) (Cmds xs))
-  ((CASE x (Alts_) ) : xs) -> Ok as
-  ((CASE x (Alts alts) ) : xs) -> let content = case L.lookup (updatePosWDir pos x) space of 
+  ((CASE x (Alts_) ) : xs) -> ignore xs
+  ((CASE x (Alts alts) ) : xs) -> let content = case L.lookup (updatePosWDir pos x heading) space of 
                                                   Nothing -> Boundary
                                                   Just c -> c in
                                       let list = [cmds | (Alt pat cmds) <- alts, (isSame content pat)] in
                                         case list of 
                                           [] -> Fail ("Did not create option " ++ (show content) ++ " in case of\n") 
                                           (x:_)  -> case x of 
-                                                      (Cmds_)  -> Ok as
+                                                      (Cmds_)  -> ignore xs
                                                       (Cmds l) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) )
                      
   ((CMD s) : xs) ->  case L.lookup s env of
                     Nothing -> Fail ("Cannot find command \"" ++ s ++ "\"")
                     Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) )
-                    Just (Cmds_ ) -> Ok as
+                    Just (Cmds_ ) -> ignore xs
   [] -> Done space pos heading
 
   where newPos = updatePos pos heading
@@ -186,6 +186,7 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
         isSame Boundary BOUNDARY = True
         isSame _        UNDERSCORE = True
         isSame _        _        = False
+        ignore rules = Ok (ArrowState space pos heading (Cmds rules))
         
 
 
