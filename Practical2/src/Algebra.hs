@@ -63,8 +63,6 @@ fold (aProgram, aRule, aCmdsE, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE,
 -- Exercise 6
 
 -- check if there are no undefined rules
-  -- rule names are defined in rules (its string) 
-  -- functions calls are defined in CMD string
 checkCompleteness :: [String] -> [String] -> Bool
 checkCompleteness names calls = all (==True) (foldr (\x r -> (x `elem` names) : r) [] calls )
 
@@ -97,14 +95,62 @@ checkNoUndefinedRules = (
                 )
 
 -- check if command has start
-checkStart :: Program -> Bool
-checkStart (Program rs) = (length (filter(\(Rule s cs) -> s == "Start") rs)) == 1
+checkStart :: Algebra String String String String String String String Bool 
+checkStart = (
+            (\rs -> (length (filter(== "start") rs)) == 1), --Program
+            (\s cs -> s), -- Rule
+            " ",           -- Cmds empty
+            (\cs -> " "),      -- Cmds
+            " ",           -- GO
+            " ",           -- TAKE
+            " ",           -- MARK
+            " ",           -- NOTHING       
+            (\d -> " "),      -- TURN
+            (\d as -> " "), -- CASE
+            (\s -> " "), -- CMD with string
+            " ",           -- LEFT
+            " ",           -- RIGHT
+            " ",           -- FRONT
+            " ",           -- Alts empty
+            (\as -> " "),    -- Alts
+            (\p cs -> " "), -- Alt
+            " ",           -- EMPTY   
+            " ",           -- LAMBDA
+            " ",           -- DEBRIS
+            " ",           -- ASTEROID
+            " ",           -- BOUNDARY
+            " "           -- UNDERSCORE
+            )
 
 -- check if functions are double
-checkRepeat :: Program -> Bool
-checkRepeat (Program rs) = let (_, result) = foldr (\x (l,b) -> if x `elem` l then (l, True) else (x:l, b)) ([], False) commandList in
-                               result
-  where commandList = [s | (Rule s cs) <- rs]
+checkNoRepeat :: Algebra String String String String String String String Bool 
+checkNoRepeat = (
+            (\rs -> let (_, result) = foldr (\x (l,b) -> if x `elem` l then (l, False) else (x:l, b)) ([], True) rs in
+                        result), --Program
+            (\s cs -> s), -- Rule
+            " ",           -- Cmds empty
+            (\cs -> " "),      -- Cmds
+            " ",           -- GO
+            " ",           -- TAKE
+            " ",           -- MARK
+            " ",           -- NOTHING       
+            (\d -> " "),      -- TURN
+            (\d as -> " "), -- CASE
+            (\s -> " "), -- CMD with string
+            " ",           -- LEFT
+            " ",           -- RIGHT
+            " ",           -- FRONT
+            " ",           -- Alts empty
+            (\as -> " "),    -- Alts
+            (\p cs -> " "), -- Alt
+            " ",           -- EMPTY   
+            " ",           -- LAMBDA
+            " ",           -- DEBRIS
+            " ",           -- ASTEROID
+            " ",           -- BOUNDARY
+            " "           -- UNDERSCORE
+            )
+
 
 -- algebra for pattern match check
 isComplete :: [Pat] -> Bool
@@ -140,7 +186,7 @@ checkMatchComplete = (
     
 
 checkProgram :: Program -> Bool
-checkProgram p = (fold checkNoUndefinedRules p) && (fold checkMatchComplete p)
+checkProgram p = (fold checkNoUndefinedRules p) && (fold checkStart p) && (fold checkNoRepeat p) && (fold checkMatchComplete p)
 
 maincp = do 
        s <- readFile "../examples/Add2.arrow"
