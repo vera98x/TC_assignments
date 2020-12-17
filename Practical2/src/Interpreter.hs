@@ -127,18 +127,16 @@ updateHeading South RIGHT = West
 updateHeading h    FRONT = h
 
 updatePosWDir :: Pos -> Dir -> Heading -> Pos
-updatePosWDir (x,y) LEFT _ =  (x, y-1)
-updatePosWDir (x,y) RIGHT _ = (x, y+1)
-updatePosWDir pos FRONT h = updatePos pos h
+updatePosWDir pos dir h =  updatePos pos (updateHeading h dir)
 
 
 mains = do
-       s <- readFile "../examples/Maze.space"
+       s <- readFile "../examples/AddInput.space"
        let (space:ss) = ParseLib.Abstract.parse parseSpace s
        a <- readFile "../examples/Add.arrow"
        let env = (toEnvironment a)
        putStr ("\n" ++ (show env) ++ "\n\n")
-       let as = ArrowState (fst space) (0,0) East (Cmds [(CASE RIGHT 
+       let as = ArrowState (fst space) (0,0) East (Cmds [(CASE FRONT 
                                                             (Alts [(Alt LAMBDA (Cmds([GO, GO, GO, GO,GO, MARK])))])
                                                           )])
        putStr (show (step env as)) 
@@ -166,7 +164,7 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
                                                   Just c -> c in
                                       let list = [cmds | (Alt pat cmds) <- alts, (isSame content pat)] in
                                         case list of 
-                                          [] -> Fail ("Did not create option " ++ (show content) ++ " in case of\n") 
+                                          [] -> Fail ("Did not create option " ++ (show content) ++ " in case of \n") 
                                           (x:_)  -> case x of 
                                                       (Cmds_)  -> ignore xs
                                                       (Cmds l) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) )

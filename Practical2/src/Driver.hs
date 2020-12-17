@@ -15,6 +15,7 @@ main3 = do
        a <- readFile "../examples/Add.arrow"
        let env = (toEnvironment a)
        let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
+       putStr ((show cmds) ++ "\n")
        let as = ArrowState (fst space) (0,0) East (cmds)
        interactive env as
 
@@ -57,6 +58,7 @@ batch env as = do
                      (Ok newAs@(ArrowState s p h st)) -> do 
                                                          batch env newAs
                      (Done s p h) -> (s, p, h)
+                     (Fail s) -> error s
 
 main_ :: IO()
 main_ = do
@@ -84,6 +86,10 @@ main_ = do
                   "w" -> West
                   "s" -> South
        let as = ArrowState (fst space) (x,y) heading (cmds)
-       let (s, p, h) = batch env as
-       putStr (printSpace s)
+       putStr "Do you want to use batch mode: y, n (default no)?"
+       res <-  getLine
+       if res == "y" then do
+              let (s, p, h) = batch env as
+              putStr (printSpace s)
+       else interactive env as
        
