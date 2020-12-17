@@ -142,7 +142,6 @@ mains = do
        putStr (show (step env as)) 
 
 step :: Environment -> ArrowState -> Step
-step env as@(ArrowState space pos heading (Cmds_) ) = Done space pos heading 
 step env as@(ArrowState space pos heading (Cmds stack) ) = 
   case stack of
   (GO : xs) -> case L.lookup newPos space of
@@ -158,21 +157,17 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
   (MARK : xs) ->  Ok (ArrowState (L.insert pos Lambda space) pos heading (Cmds xs))
   (NOTHING : xs) -> ignore xs
   ((TURN dir) : xs) -> Ok (ArrowState space pos (updateHeading heading dir) (Cmds xs))
-  ((CASE x (Alts_) ) : xs) -> ignore xs
   ((CASE x (Alts alts) ) : xs) -> let content = case L.lookup (updatePosWDir pos x heading) space of 
                                                   Nothing -> Boundary
                                                   Just c -> c in
                                       let list = [cmds | (Alt pat cmds) <- alts, (isSame content pat)] in
                                         case list of 
                                           [] -> Fail ("Did not create option " ++ (show content) ++ " in case of \n") 
-                                          (x:_)  -> case x of 
-                                                      (Cmds_)  -> ignore xs
-                                                      (Cmds l) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) )
+                                          (Cmds l:_) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) )
                      
   ((CMD s) : xs) ->  case L.lookup s env of
                     Nothing -> Fail ("Cannot find command \"" ++ s ++ "\"")
                     Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) )
-                    Just (Cmds_ ) -> ignore xs
   [] -> Done space pos heading
 
   where newPos = updatePos pos heading

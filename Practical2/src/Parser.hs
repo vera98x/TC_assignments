@@ -238,7 +238,7 @@ happyReduction_4 (_ `HappyStk`
 
 happyReduce_5 = happySpecReduce_0  7 happyReduction_5
 happyReduction_5  =  HappyAbsSyn7
-		 (Cmds_
+		 (Cmds []
 	)
 
 happyReduce_6 = happySpecReduce_2  7 happyReduction_6
@@ -333,7 +333,7 @@ happyReduction_18 _
 
 happyReduce_19 = happySpecReduce_0  11 happyReduction_19
 happyReduction_19  =  HappyAbsSyn11
-		 (Alts_
+		 (Alts []
 	)
 
 happyReduce_20 = happySpecReduce_2  11 happyReduction_20

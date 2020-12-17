@@ -9,7 +9,6 @@ import Lexer -- remove later
 type Algebra p a as d c cs r pr = 
                 ([r]      -> pr, --Program
                 String -> cs -> r, -- Rule
-                cs,           -- Cmds empty
                 [c] -> cs,      -- Cmds
                 c,           -- GO
                 c,           -- TAKE
@@ -21,7 +20,6 @@ type Algebra p a as d c cs r pr =
                 d,           -- LEFT
                 d,           -- RIGHT
                 d,           -- FRONT
-                as,           -- Alts empty
                 [a] -> as,    -- Alts
                 p -> cs -> a, -- Alt
                 p,           -- EMPTY   
@@ -33,11 +31,10 @@ type Algebra p a as d c cs r pr =
                 )
 
 fold :: Algebra p a as d c cs r pr -> Program -> pr 
-fold (aProgram, aRule, aCmdsE, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE, aCMD, aLEFT, 
-      aRIGHT, aFRONT, aAltsE, aAlts, aAlt, aEMPTY, aLAMBDA, aDEBRIS, aASTEROID, aBOUNDARY, aUNDERSCORE) p = f p
+fold (aProgram, aRule, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE, aCMD, aLEFT, 
+      aRIGHT, aFRONT, aAlts, aAlt, aEMPTY, aLAMBDA, aDEBRIS, aASTEROID, aBOUNDARY, aUNDERSCORE) p = f p
       where f (Program rs) = aProgram (map fr rs)
             fr (Rule s c) =  aRule s (fcs c)
-            fcs (Cmds_) = aCmdsE
             fcs (Cmds cs) = aCmds (map fc cs)
             fc (GO) = aGO
             fc (TAKE) = aTAKE
@@ -49,7 +46,6 @@ fold (aProgram, aRule, aCmdsE, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE,
             fd (LEFT) = aLEFT
             fd (RIGHT) = aRIGHT
             fd (FRONT) = aFRONT
-            fas (Alts_) = aAltsE
             fas (Alts as) = aAlts (map fa as)
             fa (Alt p cmds) = aAlt (fp p) (fcs cmds)
             fp (EMPTY) = aEMPTY
@@ -71,7 +67,6 @@ checkNoUndefinedRules = (
                 (\rs -> let (names, calls) = (unzip rs) in 
                         checkCompleteness names ((concat calls))), --Program
                 (\s cs -> (s, cs)), -- Rule
-                [],           -- Cmds empty
                 (\cs -> filter (/= " ") (concat cs)), -- Cmds
                 [],           -- GO
                 [],           -- TAKE
@@ -83,7 +78,6 @@ checkNoUndefinedRules = (
                 " ",           -- LEFT
                 " ",           -- RIGHT
                 " ",           -- FRONT
-                [],           -- Alts empty
                 (\as -> concat as),    -- Alts
                 (\p cs -> cs), -- Alt
                 " ",           -- EMPTY   
@@ -99,7 +93,6 @@ checkStart :: Algebra String String String String String String String Bool
 checkStart = (
             (\rs -> (length (filter(== "start") rs)) == 1), --Program
             (\s cs -> s), -- Rule
-            " ",           -- Cmds empty
             (\cs -> " "),      -- Cmds
             " ",           -- GO
             " ",           -- TAKE
@@ -111,7 +104,6 @@ checkStart = (
             " ",           -- LEFT
             " ",           -- RIGHT
             " ",           -- FRONT
-            " ",           -- Alts empty
             (\as -> " "),    -- Alts
             (\p cs -> " "), -- Alt
             " ",           -- EMPTY   
@@ -128,7 +120,6 @@ checkNoRepeat = (
             (\rs -> let (_, result) = foldr (\x (l,b) -> if x `elem` l then (l, False) else (x:l, b)) ([], True) rs in
                         result), --Program
             (\s cs -> s), -- Rule
-            " ",           -- Cmds empty
             (\cs -> " "),      -- Cmds
             " ",           -- GO
             " ",           -- TAKE
@@ -140,7 +131,6 @@ checkNoRepeat = (
             " ",           -- LEFT
             " ",           -- RIGHT
             " ",           -- FRONT
-            " ",           -- Alts empty
             (\as -> " "),    -- Alts
             (\p cs -> " "), -- Alt
             " ",           -- EMPTY   
@@ -161,7 +151,6 @@ checkMatchComplete :: Algebra Pat Pat Bool Bool Bool Bool Bool Bool
 checkMatchComplete = (
                 (\rs -> all (==True) rs), --Program
                 (\s cs -> cs), -- Rule
-                True,           -- Cmds empty
                 (\cs -> all (==True) cs ),      -- Cmds
                 True,           -- GO
                 True,           -- TAKE
@@ -173,7 +162,6 @@ checkMatchComplete = (
                 True,           -- LEFT
                 True,           -- RIGHT
                 True,           -- FRONT
-                False,           -- Alts empty
                 (\alt -> isComplete alt),    -- Alts
                 (\pat cs -> pat), -- Alt
                 EMPTY,           -- EMPTY   

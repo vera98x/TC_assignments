@@ -40,7 +40,7 @@ Prules : Prule {[$1]}
 
 Prule :  string_ arrow Pcmds dot {Rule $1 $3}
 
-Pcmds : {- empty -}  { Cmds_ }
+Pcmds : {- empty -}  { Cmds [] }
       | Pcmd PMultCmds {Cmds ($1:$2)}
 
 PMultCmds : {- empty -} {[]}
@@ -58,7 +58,7 @@ Pdir : left {LEFT}
      | right {RIGHT}
      | front {FRONT}
 
-Palts : {- empty -}  { Alts_ }
+Palts : {- empty -}  { Alts [] }
       | Palt PMultAlts {Alts ($1:$2)}
 
 PMultAlts : {- empty -} {[]}
