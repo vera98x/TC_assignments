@@ -98,14 +98,14 @@ mainp = do
 
 -- | Exercise 8
 toEnvironment :: String -> Environment
-toEnvironment s = foldr (\(Rule rstr cs) m -> L.insert rstr cs m) L.empty rs
+toEnvironment s = if check p then foldr (\(Rule rstr cs) m -> L.insert rstr cs m) L.empty rs else error "Program did not pass all checks"
   where p@(Program rs) = Parser.parseTokens $ alexScanTokens s
 
 maine = do 
        s <- readFile "../examples/Add.arrow"
        putStr (show (toEnvironment s)) 
 
-check = undefined
+check = checkProgram
 
 -- | Exercise 9
 

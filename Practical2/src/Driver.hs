@@ -3,9 +3,9 @@ module Driver where
 import Algebra
 import Model
 import Interpreter
-import ParseLib.Abstract -----delete later
-import Parser            -----delete later
-import Lexer            -----delete later
+import ParseLib.Abstract 
+import Parser            
+import Lexer            
 
 
 main3 :: IO()
@@ -43,11 +43,6 @@ interactive env as = do
                      _ <- printStatement newStep
                      case newStep of
                        (Ok newAs@(ArrowState s p h st)) -> do getLine 
-                                                              putStr (show p)
-                                                              putStr ((show st) ++ "\n")
-                                                              putStr ((show h)++ "\n")
-                                                              putStr ((show s)++ "\n")
-                                                              
                                                               interactive env newAs
                        _ -> return ()
 
