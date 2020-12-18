@@ -7,29 +7,6 @@ import ParseLib.Abstract
 import Parser            
 import Lexer            
 
-
-main3 :: IO()
-main3 = do
-       s <- readFile "../examples/AddInput.space"
-       let (space:ss) = ParseLib.Abstract.parse parseSpace s
-       a <- readFile "../examples/Add.arrow"
-       let env = (toEnvironment a)
-       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
-       putStr ((show cmds) ++ "\n")
-       let as = ArrowState (fst space) (0,0) East (cmds)
-       interactive env as
-
-main4 :: IO()
-main4 = do
-       s <- readFile "../examples/AddInput.space"
-       let (space:ss) = ParseLib.Abstract.parse parseSpace s
-       a <- readFile "../examples/Add.arrow"
-       let env = (toEnvironment a)
-       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
-       let as = ArrowState (fst space) (0,0) East (cmds)
-       let (s, p, h) = batch env as
-       putStr (printSpace s)
-
 -- Exercise 11
 
 printStatement :: Step -> IO()
@@ -44,7 +21,7 @@ interactive env as = do
                      case newStep of
                        (Ok newAs@(ArrowState s p h st)) -> do getLine 
                                                               interactive env newAs
-                       _ -> return ()
+                       _ -> return () -- do nothing if not ok. Result is printed already, nothing has to be done.
 
 batch :: Environment -> ArrowState -> (Space, Pos, Heading)
 batch env as = do
@@ -54,6 +31,28 @@ batch env as = do
                                                          batch env newAs
                      (Done s p h) -> (s, p, h)
                      (Fail s) -> error s
+
+interactiveAddMain :: IO()
+interactiveAddMain = do
+       s <- readFile "../examples/AddInput.space"
+       let (space:ss) = ParseLib.Abstract.parse parseSpace s
+       a <- readFile "../examples/Add.arrow"
+       let env = (toEnvironment a)
+       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
+       putStr ((show cmds) ++ "\n")
+       let as = ArrowState (fst space) (0,0) East cmds -- add the first command to arrowstate, that is start
+       interactive env as
+
+batchAddMain :: IO()
+batchAddMain = do
+       s <- readFile "../examples/AddInput.space"
+       let (space:ss) = ParseLib.Abstract.parse parseSpace s
+       a <- readFile "../examples/Add.arrow"
+       let env = (toEnvironment a)
+       let (Program ((Rule s cmds) : xs )) = Parser.parseTokens (alexScanTokens a)
+       let as = ArrowState (fst space) (0,0) East cmds -- add the first command to arrowstate, that is start
+       let (s, p, h) = batch env as
+       putStr (printSpace s)
 
 main_ :: IO()
 main_ = do
@@ -72,14 +71,14 @@ main_ = do
        putStr "Which y position do you want to use?"
        y_ <- getLine 
        let y = read y_ :: Int 
-
-       putStr "Which heading do you want to use: e, n, w, s?"
+       putStr "Which heading do you want to use: e, n, w, s (default east)?"
        h <-  getLine
        let heading = case h of
                   "e" -> East
                   "n" -> North
                   "w" -> West
                   "s" -> South
+                  _  -> East
        let as = ArrowState (fst space) (x,y) heading (cmds)
        putStr "Do you want to use batch mode: y, n (default no)?"
        res <-  getLine

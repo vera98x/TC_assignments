@@ -48,7 +48,8 @@ library
   build-depends:       base >=4.12 && <4.15,
                        containers,
                        uu-tc,
-                       array
+                       array,
+                       split
 
   -- Directories containing source files.
   hs-source-dirs:      src

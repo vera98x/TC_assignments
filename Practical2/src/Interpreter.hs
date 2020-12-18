@@ -55,12 +55,6 @@ contentsTable =  [ (Empty   , '.' )
                  , (Asteroid, 'O' )
                  , (Boundary, '#' )]
 
-main = do 
-       s <- readFile "../examples/Maze.space"
-       let (space:ss) = ParseLib.Abstract.parse parseSpace s
-       putStr (printSpace (fst space))
- 
-
 -- Exercise 7
 printSpace :: Space -> String
 printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
@@ -75,7 +69,7 @@ printSpace s = (intercalate "\n" (chunksOf (r+1) (L.foldr f [] s))) ++ "\n"
 -- These three should be defined by you
 type Ident = String
 type Commands = Cmds
-data Heading = West | East | North | South deriving Show-- is this ok?
+data Heading = West | East | North | South deriving Show 
 
 type Environment = Map Ident Commands
 
@@ -86,26 +80,12 @@ data Step =  Done  Space Pos Heading
           |  Ok    ArrowState
           |  Fail  String deriving Show
 
-
-main2 = do 
-       s <- readFile "../examples/Add.arrow"
-       putStr (show(alexScanTokens s))
-
-mainp = do 
-       s <- readFile "../examples/Add.arrow"
-       let t = (alexScanTokens s)
-       putStr (show (Parser.parseTokens t)) 
-
 -- | Exercise 8
 toEnvironment :: String -> Environment
 toEnvironment s = if check p then foldr (\(Rule rstr cs) m -> L.insert rstr cs m) L.empty rs else error "Program did not pass all checks"
   where p@(Program rs) = Parser.parseTokens $ alexScanTokens s
 
-maine = do 
-       s <- readFile "../examples/Add.arrow"
-       putStr (show (toEnvironment s)) 
-
-check = checkProgram
+check = checkProgram -- reuse the checkprogram from Algebra.hs for the check
 
 -- | Exercise 9
 
@@ -126,20 +106,8 @@ updateHeading South LEFT = East
 updateHeading South RIGHT = West
 updateHeading h    FRONT = h
 
-updatePosWDir :: Pos -> Dir -> Heading -> Pos
+updatePosWDir :: Pos -> Dir -> Heading -> Pos   -- update the position using the direction and the heading (used in case of situations)
 updatePosWDir pos dir h =  updatePos pos (updateHeading h dir)
-
-
-mains = do
-       s <- readFile "../examples/AddInput.space"
-       let (space:ss) = ParseLib.Abstract.parse parseSpace s
-       a <- readFile "../examples/Add.arrow"
-       let env = (toEnvironment a)
-       putStr ("\n" ++ (show env) ++ "\n\n")
-       let as = ArrowState (fst space) (0,0) East (Cmds [(CASE FRONT 
-                                                            (Alts [(Alt LAMBDA (Cmds([GO, GO, GO, GO,GO, MARK])))])
-                                                          )])
-       putStr (show (step env as)) 
 
 step :: Environment -> ArrowState -> Step
 step env as@(ArrowState space pos heading (Cmds stack) ) = 
@@ -157,17 +125,17 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
   (MARK : xs) ->  Ok (ArrowState (L.insert pos Lambda space) pos heading (Cmds xs))
   (NOTHING : xs) -> ignore xs
   ((TURN dir) : xs) -> Ok (ArrowState space pos (updateHeading heading dir) (Cmds xs))
-  ((CASE x (Alts alts) ) : xs) -> let content = case L.lookup (updatePosWDir pos x heading) space of 
+  ((CASE x (Alts alts) ) : xs) -> let content = case L.lookup (updatePosWDir pos x heading) space of -- check content on that position
                                                   Nothing -> Boundary
                                                   Just c -> c in
-                                      let list = [cmds | (Alt pat cmds) <- alts, (isSame content pat)] in
+                                      let list = [cmds | (Alt pat cmds) <- alts, (isSame content pat)] in -- get if the content is an option in the case of
                                         case list of 
                                           [] -> Fail ("Did not create option " ++ (show content) ++ " in case of \n") 
-                                          (Cmds l:_) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) )
+                                          (Cmds l:_) -> Ok (ArrowState space pos heading (Cmds (l ++ xs) ) ) -- add the commands of that alternative to the stack
                      
   ((CMD s) : xs) ->  case L.lookup s env of
                     Nothing -> Fail ("Cannot find command \"" ++ s ++ "\"")
-                    Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) )
+                    Just (Cmds c) -> Ok (ArrowState space pos heading (Cmds (c++xs)) ) -- add the commands of that function to the stack
   [] -> Done space pos heading
 
   where newPos = updatePos pos heading
@@ -179,6 +147,7 @@ step env as@(ArrowState space pos heading (Cmds stack) ) =
         isSame Boundary BOUNDARY = True
         isSame _        UNDERSCORE = True
         isSame _        _        = False
+        ignore :: [Cmd] -> Step
         ignore rules = Ok (ArrowState space pos heading (Cmds rules))
         
 

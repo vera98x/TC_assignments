@@ -1,9 +1,6 @@
 module Algebra where
 
 import Model
-import Parser -- remove later
-import Lexer -- remove later
-
 
 -- Exercise 5
 type Algebra p a as d c cs r pr = 
@@ -59,13 +56,13 @@ fold (aProgram, aRule, aCmds, aGO, aTAKE, aMARK, aNOTHING, aTURN, aCASE, aCMD, a
 -- Exercise 6
 
 -- check if there are no undefined rules
-checkCompleteness :: [String] -> [String] -> Bool
-checkCompleteness names calls = all (==True) (foldr (\x r -> (x `elem` names) : r) [] calls )
+callsInNames :: [String] -> [String] -> Bool
+callsInNames names calls = all (==True) (foldr (\x r -> (x `elem` names) : r) [] calls )
 
 checkNoUndefinedRules :: Algebra String [String] [String] String [String] [String] (String, [String]) Bool 
 checkNoUndefinedRules = (
                 (\rs -> let (names, calls) = (unzip rs) in 
-                        checkCompleteness names ((concat calls))), --Program
+                        callsInNames names ((concat calls))), --Program
                 (\s cs -> (s, cs)), -- Rule
                 (\cs -> filter (/= " ") (concat cs)), -- Cmds
                 [],           -- GO
@@ -175,9 +172,3 @@ checkMatchComplete = (
 
 checkProgram :: Program -> Bool
 checkProgram p = (fold checkNoUndefinedRules p) && (fold checkStart p) && (fold checkNoRepeat p) && (fold checkMatchComplete p)
-
-maincp = do 
-       s <- readFile "../examples/Add2.arrow"
-       let t = (alexScanTokens s)
-       let p = Parser.parseTokens t
-       putStr (show (checkProgram p))
