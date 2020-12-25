@@ -34,7 +34,7 @@ batch env as = do
 
 interactiveAddMain :: IO()
 interactiveAddMain = do
-       s <- readFile "../examples/AddInput.space"
+       s <- readFile "../examples/AddInput.space" 
        let (space:ss) = ParseLib.Abstract.parse parseSpace s
        a <- readFile "../examples/Add.arrow"
        let env = (toEnvironment a)
