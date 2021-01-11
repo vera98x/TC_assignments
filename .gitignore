@@ -3,3 +3,8 @@
 *.o
 */dist-newstyle
 */examples
+*.ssm
+*/test-cases
+*.bat
+*.sh
+*.jar
