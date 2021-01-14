@@ -8,6 +8,9 @@ import CSharpGram
 import CSharpAlgebra
 import SSM
 
+import Data.Char (ord)
+
+
 {-
   This file contains a starting point for the code generation which should handle very simple programs.
 -}
@@ -60,6 +63,11 @@ fStatBlock = concat
 
 fExprCon :: Token -> ValueOrAddress -> Code
 fExprCon (ConstInt n) va = [LDC n]
+fExprCon (TokenBool True) va = [LDC 1]
+fExprCon (TokenBool False) va = [LDC 0]
+fExprCon (TokenChar c) va = [LDC (ord c)]
+
+
 
 fExprVar :: Token -> ValueOrAddress -> Code
 fExprVar (LowerId x) va = let loc = 37 in case va of

@@ -43,5 +43,21 @@ processFile (infile, outfile) =
                 . run (pClass <* eof)
                 . run lexicalScanner
 
+processFile2 :: (FilePath, FilePath) -> IO ()
+processFile2 (infile, outfile) =
+  do
+    xs <- readFile infile
+    let lex = run lexicalScanner xs
+    putStr (show lex)
+    let parsed = run (pClass <* eof) lex
+    putStr (show parsed)
+    let code = foldCSharp codeAlgebra parsed
+    putStr (show code)
+    let done = formatCode code
+    putStr (show done)
+    writeFile outfile (done)
+    putStrLn (outfile ++ " written")
+
+
 run :: Parser s a -> [s] -> a
 run p = fst . head . filter (null . snd) . parse p
