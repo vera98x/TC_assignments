@@ -24,7 +24,7 @@ data Token = POpen    | PClose      -- parentheses     ()
 
 ----- Begin Lexer -----
 lexicalScanner :: Parser Char [Token]
-lexicalScanner = lexWhiteSpace *> greedy (lexToken <* lexWhiteSpace) <* eof
+lexicalScanner = lexWhiteSpace *> greedy ( lexComment *> lexToken <* lexWhiteSpace) <* eof
 
 lexToken :: Parser Char Token
 lexToken = greedyChoice
@@ -70,13 +70,16 @@ stdTypes :: [String]
 stdTypes = ["int", "long", "double", "float", "byte", "short", "bool", "char"]
 operators :: [String]
 operators = ["+", "-", "*", "/", "%", "&&", "||", "^", "<=", "<", ">=", ">", "==", "!=", "="]
-
+-- operators = [("*", "/", "%"), ("+", "-"), ("<=", "<", ">=", ">"), ("==", "!="), "^", "&&", "||", "="]
 
 lexConstInt :: Parser Char Token
 lexConstInt = ConstInt . read <$> greedy1 (satisfy isDigit)
 
 lexTrueFalse :: Parser Char Token
 lexTrueFalse = ((\x -> TokenBool True) <$> (token "true") ) <|> ((\x -> TokenBool False) <$> (token "false") ) 
+
+lexComment :: Parser Char String
+lexComment = (\x -> "##") <$> greedy (token "//" <* many (satisfy (/= '\n')) <* satisfy(=='\n') <* lexWhiteSpace) <<|> succeed "succ"
 
 lexChar :: Parser Char Token
 lexChar = (\x -> TokenChar x) <$> (symbol '\'' *> anySymbol <* symbol '\'')

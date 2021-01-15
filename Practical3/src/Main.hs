@@ -26,7 +26,7 @@ main = do
     processFiles files
 
 processFiles :: [FilePath] -> IO ()
-processFiles = mapM_ $ processFile
+processFiles = mapM_ $ processFile2
         . \f -> (f, addExtension (dropExtension f) "ssm")
 
 
@@ -49,12 +49,16 @@ processFile2 (infile, outfile) =
     xs <- readFile infile
     let lex = run lexicalScanner xs
     putStr (show lex)
+    putStr "\n\n"
     let parsed = run (pClass <* eof) lex
     putStr (show parsed)
+    putStr "\n\n"
     let code = foldCSharp codeAlgebra parsed
     putStr (show code)
+    putStr "\n\n"
     let done = formatCode code
     putStr (show done)
+    putStr "\n\n"
     writeFile outfile (done)
     putStrLn (outfile ++ " written")
 

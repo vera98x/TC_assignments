@@ -8,6 +8,8 @@ class Hello
         b = 8;
         char c;
         c = 'a';
+        // test
+        // test2
     }
     
     int square( int x )
