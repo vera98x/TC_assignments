@@ -11,6 +11,7 @@ data Token = POpen    | PClose      -- parentheses     ()
            | Comma    | Semicolon
            | KeyIf    | KeyElse
            | KeyWhile | KeyReturn
+           | KeyFor
            | KeyTry   | KeyCatch
            | KeyClass | KeyVoid
            | StdType   String       -- the 8 standard types
@@ -55,6 +56,7 @@ lexTerminal = choice [t <$ keyword s | (t,s) <- terminals]
         , ( KeyIf     , "if"     )
         , ( KeyElse   , "else"   )
         , ( KeyWhile  , "while"  )
+        , ( KeyFor    , "for"    )
         , ( KeyReturn , "return" )
         , ( KeyTry    , "try"    )
         , ( KeyCatch  , "catch"  )

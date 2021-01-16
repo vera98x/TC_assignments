@@ -10,6 +10,9 @@ class Hello
         c = 'a';
         // test
         // test2
+        for(int i, i = 0; i < 5; i = i + 1){
+            int a;
+        }
     }
     
     int square( int x )
