@@ -50,6 +50,8 @@ processFile2 (infile, outfile) =
     let lex = run lexicalScanner xs
     putStr (show lex)
     putStr "\n\n"
+    putStr (show (parse (pClass <* eof) lex))
+    putStr "\n\n"
     let parsed = run (pClass <* eof) lex
     putStr (show parsed)
     putStr "\n\n"

@@ -17,6 +17,7 @@ data Stat = StatDecl   Decl
           | StatWhile  Expr Stat
           | StatFor    [Stat] Expr [Stat] Stat
           | StatReturn Expr
+          | StatCall   Token [Expr]
           | StatBlock  [Stat]
           deriving Show
 
@@ -63,11 +64,12 @@ pCSStatDecls :: Parser Token [Stat]
 pCSStatDecls =  ((:) <$> pCSStatDecl <*> (greedy (symbol Comma *> pCSStatDecl)) <<|> succeed [])
 
 pStat :: Parser Token Stat
-pStat =  StatExpr <$> pExpr <*  sSemi
+pStat =  StatExpr   <$> pExpr <*  sSemi
      <|> StatIf     <$ symbol KeyIf     <*> parenthesised pExpr <*> pStat <*> optionalElse
      <|> StatWhile  <$ symbol KeyWhile  <*> parenthesised pExpr <*> pStat
      <|> StatFor    <$> (symbol KeyFor   *> ( symbol POpen *> pCSStatDecls <* sSemi)) <*> (pExpr <* sSemi) <*> (pCSStatDecls <* (symbol PClose)) <*> pStat
      <|> StatReturn <$ symbol KeyReturn <*> pExpr               <*  sSemi
+     <|> StatCall   <$> sLowerId <*> parenthesised (option (listOf pExpr (symbol Comma)) []) <* sSemi
      <|> pBlock
      where optionalElse = option (symbol KeyElse *> pStat) (StatBlock [])
 

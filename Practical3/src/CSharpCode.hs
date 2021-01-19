@@ -15,15 +15,12 @@ import Data.Char (ord)
   This file contains a starting point for the code generation which should handle very simple programs.
 -}
 
-
-
-
 --                           clas memb stat  expr
 codeAlgebra :: CSharpAlgebra Code Code Code (ValueOrAddress -> Code)
 codeAlgebra =
     ( fClas
     , (fMembDecl, fMembMeth)
-    , (fStatDecl, fStatExpr, fStatIf, fStatWhile, fStatFor, fStatReturn, fStatBlock)
+    , (fStatDecl, fStatExpr, fStatIf, fStatWhile, fStatFor, fStatReturn, fStatCall, fStatBlock)
     , (fExprCon, fExprVar, fExprOp)
     )
 
@@ -61,6 +58,10 @@ fStatFor ss1 e ss2 stats = concat ss1 ++ (fStatWhile e (stats ++ (concat ss2) ) 
 fStatReturn :: (ValueOrAddress -> Code) -> Code
 fStatReturn e = e Value ++ [pop] ++ [RET]
 
+fStatCall :: Token -> [(ValueOrAddress -> Code)] -> Code
+fStatCall (LowerId "print") es = concat (map (\x -> x Value) es) ++ [TRAP 0]
+fStatCall (LowerId x) es = concat (map (\x -> x Value) es) ++ [Bsr x]
+
 fStatBlock :: [Code] -> Code
 fStatBlock = concat
 
@@ -70,8 +71,6 @@ fExprCon (TokenBool True) va = [LDC 1]
 fExprCon (TokenBool False) va = [LDC 0]
 fExprCon (TokenChar c) va = [LDC (ord c)]
 
-
-
 fExprVar :: Token -> ValueOrAddress -> Code
 fExprVar (LowerId x) va = let loc = 37 in case va of
                                               Value    ->  [LDL  loc]
@@ -79,6 +78,8 @@ fExprVar (LowerId x) va = let loc = 37 in case va of
 
 fExprOp :: Token -> (ValueOrAddress -> Code) -> (ValueOrAddress -> Code) -> ValueOrAddress -> Code
 fExprOp (Operator "=") e1 e2 va = e2 Value ++ [LDS 0] ++ e1 Address ++ [STA 0]
+fExprOp (Operator "&&") e1 e2 va = e1 Value ++ e1 Value ++ [BRF (codeSize (e2 Value)+1)] ++ e2 Value ++ [AND] -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
+fExprOp (Operator "||") e1 e2 va = e1 Value ++ e1 Value ++ [BRT (codeSize (e2 Value)+1)] ++ e2 Value ++ [OR]  -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
 fExprOp (Operator op)  e1 e2 va = e1 Value ++ e2 Value ++ [opCodes M.! op]
 
 

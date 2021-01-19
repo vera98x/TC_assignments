@@ -4,15 +4,9 @@ class Hello
     
     void main()
     {
-        int b;
-        b = 8;
-        char c;
-        c = 'a';
         // test
         // test2
-        for(int i, i = 0; i < 5; i = i + 1){
-            int a;
-        }
+        print(8+14);
     }
     
     int square( int x )

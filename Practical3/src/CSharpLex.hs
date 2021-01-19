@@ -39,7 +39,6 @@ lexToken = greedyChoice
              , lexUpperId
              ]
 
-
 lexTerminal :: Parser Char Token
 lexTerminal = choice [t <$ keyword s | (t,s) <- terminals]
   where
