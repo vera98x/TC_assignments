@@ -73,13 +73,29 @@ pStat =  StatExpr   <$> pExpr <*  sSemi
      <|> pBlock
      where optionalElse = option (symbol KeyElse *> pStat) (StatBlock [])
 
-pExprSimple :: Parser Token Expr
+pExpr, pExpr2, pExpr3, pExpr4, pExpr5, pExpr6, pExpr7, pExpr8, pExprSimple :: Parser Token Expr
+pExpr  = chainr pExpr2 op1
+pExpr2 = chainl pExpr3 op2
+pExpr3 = chainl pExpr4 op3
+pExpr4 = chainl pExpr5 op4
+pExpr5 = chainl pExpr6 op5
+pExpr6 = chainl pExpr7 op6
+pExpr7 = chainl pExpr8 op7
+pExpr8 = chainl pExprSimple op8
 pExprSimple =  ExprConst <$> sConst
            <|> ExprVar   <$> sLowerId
            <|> parenthesised pExpr
 
-pExpr :: Parser Token Expr
-pExpr = chainr pExprSimple (ExprOper <$> sOperator)
+op1, op2, op3, op4, op5, op6, op7, op8 :: Parser Token (Expr->Expr->Expr)
+op1 = ExprOper <$> symbol (Operator "=")
+op2 = ExprOper <$> symbol (Operator "||")
+op3 = ExprOper <$> symbol (Operator "&&")
+op4 = ExprOper <$> symbol (Operator "^")
+op5 = ExprOper <$> symbol (Operator "==") <|> ExprOper <$> symbol (Operator "!=")
+op6 = ExprOper <$> symbol (Operator "<=") <|> ExprOper <$> symbol (Operator "<") <|> ExprOper <$> symbol (Operator ">") <|> ExprOper <$> symbol (Operator "=>")
+op7 = ExprOper <$> symbol (Operator "+")  <|> ExprOper <$> symbol (Operator "-")
+op8 = ExprOper <$> symbol (Operator "*")  <|> ExprOper <$> symbol (Operator "/") <|> ExprOper <$> symbol (Operator "%")
+
 
 pDecl :: Parser Token Decl
 pDecl = Decl <$> pType <*> sLowerId

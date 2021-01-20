@@ -6,7 +6,7 @@ class Hello
     {
         // test
         // test2
-        print(8+14);
+        print(8+14*18+6+4/8);
     }
     
     int square( int x )
