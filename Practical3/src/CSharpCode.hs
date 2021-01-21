@@ -25,62 +25,66 @@ codeAlgebra =
     )
 
 
-fClas :: Token -> [Code] -> Code
-fClas c ms = [Bsr "main", HALT] ++ concat ms
+fClas :: Env -> Token -> [Code] -> (Env, Code)
+fClas env c ms = (env, [Bsr "main", HALT] ++ concat ms)
 
-fMembDecl :: Decl -> Code
-fMembDecl d = []
+fMembDecl :: Env -> Decl -> (Env, Code)
+fMembDecl env d = (env, [])
 
-fMembMeth :: Type -> Token -> [Decl] -> Code -> Code
-fMembMeth t (LowerId x) ps s = [LABEL x] ++ s ++ [RET]
+fMembMeth :: Env -> Type -> Token -> [Decl] -> Code -> (Env, Code)
+fMembMeth env t (LowerId x) ps s = (env, [LABEL x] ++ startup ++ s ++ cleanup ++ [RET])
+    where startup = [LDR MP] ++ [LDRR MP SP] 
+          cleanup = [LDRR SP MP] ++ [STR MP] ++ [STS (-n)] ++ [AJS (-(n-1))]
+          n = length ps
 
-fStatDecl :: Decl -> Code
-fStatDecl d = []
+fStatDecl :: Env -> Decl -> (Env, Code)
+fStatDecl env d = (env, [])
 
-fStatExpr :: (ValueOrAddress -> Code) -> Code
-fStatExpr e = e Value ++ [pop]
+fStatExpr :: Env -> (ValueOrAddress -> Code) -> (Env, Code)
+fStatExpr env e = (env, e Value ++ [pop])
 
-fStatIf :: (ValueOrAddress -> Code) -> Code -> Code -> Code
-fStatIf e s1 s2 = c ++ [BRF (n1 + 2)] ++ s1 ++ [BRA n2] ++ s2
+fStatIf :: Env -> (ValueOrAddress -> Code) -> Code -> Code -> (Env, Code)
+fStatIf env e s1 s2 = (env, c ++ [BRF (n1 + 2)] ++ s1 ++ [BRA n2] ++ s2)
     where
         c        = e Value
         (n1, n2) = (codeSize s1, codeSize s2)
 
-fStatWhile :: (ValueOrAddress -> Code) -> Code -> Code
-fStatWhile e s1 = [BRA n] ++ s1 ++ c ++ [BRT (-(n + k + 2))]
+fStatWhile :: Env -> (ValueOrAddress -> Code) -> Code -> (Env, Code)
+fStatWhile env e s1 = (env, [BRA n] ++ s1 ++ c ++ [BRT (-(n + k + 2))])
     where
         c = e Value
         (n, k) = (codeSize s1, codeSize c)
 
-fStatFor :: [Code] -> (ValueOrAddress -> Code) -> [Code] -> Code -> Code
-fStatFor ss1 e ss2 stats = concat ss1 ++ (fStatWhile e (stats ++ (concat ss2) ) )
+fStatFor :: Env -> [Code] -> (ValueOrAddress -> Code) -> [Code] -> Code -> (Env, Code)
+fStatFor env ss1 e ss2 stats = (env1, concat ss1 ++ code)
+    where (env1, code) = (fStatWhile env e (stats ++ (concat ss2) ) ) 
 
-fStatReturn :: (ValueOrAddress -> Code) -> Code
-fStatReturn e = e Value ++ [pop] ++ [RET]
+fStatReturn :: Env -> (ValueOrAddress -> Code) -> (Env, Code)
+fStatReturn env e = (env, e Value ++ [pop] ++ [RET])
 
-fStatCall :: Token -> [(ValueOrAddress -> Code)] -> Code
-fStatCall (LowerId "print") es = concat (map (\x -> x Value) es) ++ [TRAP 0]
-fStatCall (LowerId x) es = concat (map (\x -> x Value) es) ++ [Bsr x]
+fStatCall :: Env -> Token -> [(ValueOrAddress -> Code)] -> (Env, Code)
+fStatCall env (LowerId "print") es = (env, concat (map (\x -> x Value) es) ++ [TRAP 0])
+fStatCall env (LowerId x) es = (env, concat (map (\x -> x Value) es) ++ [Bsr x])
 
-fStatBlock :: [Code] -> Code
-fStatBlock = concat
+fStatBlock :: Env -> [Code] -> (Env, Code)
+fStatBlock env c = (env, concat c)
 
-fExprCon :: Token -> ValueOrAddress -> Code
-fExprCon (ConstInt n) va = [LDC n]
-fExprCon (TokenBool True) va = [LDC 1]
-fExprCon (TokenBool False) va = [LDC 0]
-fExprCon (TokenChar c) va = [LDC (ord c)]
+fExprCon :: Env -> Token -> ValueOrAddress -> Code
+fExprCon env (ConstInt n) va = [LDC n]
+fExprCon env (TokenBool True) va = [LDC 1]
+fExprCon env (TokenBool False) va = [LDC 0]
+fExprCon env (TokenChar c) va = [LDC (ord c)]
 
-fExprVar :: Token -> ValueOrAddress -> Code
-fExprVar (LowerId x) va = let loc = 37 in case va of
+fExprVar :: Env -> Token -> ValueOrAddress -> Code
+fExprVar env (LowerId x) va = let loc = 37 in case va of
                                               Value    ->  [LDL  loc]
                                               Address  ->  [LDLA loc]
 
-fExprOp :: Token -> (ValueOrAddress -> Code) -> (ValueOrAddress -> Code) -> ValueOrAddress -> Code
-fExprOp (Operator "=") e1 e2 va = e2 Value ++ [LDS 0] ++ e1 Address ++ [STA 0]
-fExprOp (Operator "&&") e1 e2 va = e1 Value ++ e1 Value ++ [BRF (codeSize (e2 Value)+1)] ++ e2 Value ++ [AND] -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
-fExprOp (Operator "||") e1 e2 va = e1 Value ++ e1 Value ++ [BRT (codeSize (e2 Value)+1)] ++ e2 Value ++ [OR]  -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
-fExprOp (Operator op)  e1 e2 va = e1 Value ++ e2 Value ++ [opCodes M.! op]
+fExprOp :: Env -> Token -> (ValueOrAddress -> Code) -> (ValueOrAddress -> Code) -> ValueOrAddress -> Code
+fExprOp env (Operator "=") e1 e2 va = e2 Value ++ [LDS 0] ++ e1 Address ++ [STA 0]
+fExprOp env (Operator "&&") e1 e2 va = e1 Value ++ e1 Value ++ [BRF (codeSize (e2 Value)+1)] ++ e2 Value ++ [AND] -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
+fExprOp env (Operator "||") e1 e2 va = e1 Value ++ e1 Value ++ [BRT (codeSize (e2 Value)+1)] ++ e2 Value ++ [OR]  -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
+fExprOp env (Operator op)  e1 e2 va = e1 Value ++ e2 Value ++ [opCodes M.! op]
 
 
 opCodes :: M.Map String Instr

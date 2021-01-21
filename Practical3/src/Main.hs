@@ -39,6 +39,7 @@ processFile (infile, outfile) =
     writeFile outfile (process xs)
     putStrLn (outfile ++ " written")
   where process = formatCode
+                . snd
                 . foldCSharp codeAlgebra
                 . run (pClass <* eof)
                 . run lexicalScanner
@@ -55,7 +56,7 @@ processFile2 (infile, outfile) =
     let parsed = run (pClass <* eof) lex
     putStr (show parsed)
     putStr "\n\n"
-    let code = foldCSharp codeAlgebra parsed
+    let (ev, code) = foldCSharp codeAlgebra parsed
     putStr (show code)
     putStr "\n\n"
     let done = formatCode code
