@@ -6,33 +6,23 @@ class Hello
     {
         // test
         // test2
-        print(8+14*18+6+4/8);
-    }
-    
-    int square( int x )
-    {
-        int y;
-        y = x*x;
-        return y;   
+        int a;
+        int c;
+        a = 3;
+        c = 8;
+        print(a);
+        print(c);
+        c = 13;
+        print(c);
+        print(a);
+        print(8+6+5*2);
+        square(5,2);
     }
 
-    int abs(int x)
+    void square(int x, int y)
     {
-    	
-        if (x<0)
-            x = 0-x;
-        return x;
+        print(x);
+        print(y);
+        print(x*y);
     }
-    
-    int fac(int x)
-    {
-        int r; int t;
-        t=1; r=1;
-        while (t<=x)
-        {
-            r = r*t;
-            t = t+1;
-        }
-        return r;
-   }
 }

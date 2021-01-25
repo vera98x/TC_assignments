@@ -8,13 +8,15 @@ import qualified Data.Map as M
   Only modify this file when you change the AST in CSharpGram.hs
 -}
 
-type CSharpAlgebra clas memb stat expr                              --
+type CSharpAlgebra clas memb par stat expr                              --
     =    ( Env -> Token -> [memb] -> (Env, clas)                    --  Class = Class Token [Member]
                                                                     --
       ,  ( Env -> Decl                             -> (Env, memb)   --  Member = MemberD Decl
          , Env -> Type -> Token -> [Decl] -> stat  -> (Env, memb)   --         | MemberM Type Token [Decl] Stat
          )                                                          --
                                                                     --
+      ,  ( Env -> Decl -> (Env, par))                              -- Parameter
+
       ,  ( Env -> Decl                  -> (Env, stat)              --  Stat = StatDecl   Decl
          , Env -> expr                  -> (Env, stat)              --       | StatExpr   Expr
          , Env -> expr -> stat -> stat  -> (Env, stat)              --       | StatIf     Expr Stat Stat
@@ -32,12 +34,13 @@ type CSharpAlgebra clas memb stat expr                              --
       )
 
 
-foldCSharp :: CSharpAlgebra clas memb stat expr -> Class -> (Env, clas)
-foldCSharp (c, (md,mm), (sd,se,si,sw,sf,sr,sc,sb), (ec,ev,eo)) cl = fClas ev_ cl
+foldCSharp :: CSharpAlgebra clas memb par stat expr -> Class -> (Env, clas)
+foldCSharp (c, (md,mm), (pp), (sd,se,si,sw,sf,sr,sc,sb), (ec,ev,eo)) cl = fClas ev_ cl
     where
         fClas env (Class      t ms)     = let (env1, code) = updateMapEnv fMemb env ms in c env1 t code --(map (fMemb env) ms)
         fMemb env (MemberD    d)        = md env d
-        fMemb env (MemberM    t m ps s) = let (env1, code) = (fStat env s) in mm env1 t m ps code --(fStat env s)
+        fMemb env (MemberM    t m ps s) = let (env_p, c) = updateMapEnv fPar ev_ ps in let (env1, code) = (fStat env_p s) in mm env1 t m ps code --to do let (env2, code2) = mm env1 t m ps code in (env, code2) --(fStat env s)
+        fPar  env ps                    = pp env ps
         fStat env (StatDecl   d)        = sd env d
         fStat env (StatExpr   e)        = se env (fExpr env e)
         fStat env (StatIf     e s1 s2)  = let (env2, code2) = (fStat env s1) in

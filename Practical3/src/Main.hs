@@ -57,7 +57,7 @@ processFile2 (infile, outfile) =
     putStr (show parsed)
     putStr "\n\n"
     let (ev, code) = foldCSharp codeAlgebra parsed
-    putStr (show code)
+    putStr (show ev)
     putStr "\n\n"
     let done = formatCode code
     putStr (show done)

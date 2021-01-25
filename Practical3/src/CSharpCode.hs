@@ -16,10 +16,11 @@ import Data.Char (ord)
 -}
 
 --                           clas memb stat  expr
-codeAlgebra :: CSharpAlgebra Code Code Code (ValueOrAddress -> Code)
+codeAlgebra :: CSharpAlgebra Code Code Code Code (ValueOrAddress -> Code)
 codeAlgebra =
     ( fClas
     , (fMembDecl, fMembMeth)
+    , (fParameter)
     , (fStatDecl, fStatExpr, fStatIf, fStatWhile, fStatFor, fStatReturn, fStatCall, fStatBlock)
     , (fExprCon, fExprVar, fExprOp)
     )
@@ -29,19 +30,28 @@ fClas :: Env -> Token -> [Code] -> (Env, Code)
 fClas env c ms = (env, [Bsr "main", HALT] ++ concat ms)
 
 fMembDecl :: Env -> Decl -> (Env, Code)
-fMembDecl env d = (env, [])
+fMembDecl env (Decl _ (LowerId x) ) = (M.insert x ((M.size env)+1) env, [])
 
 fMembMeth :: Env -> Type -> Token -> [Decl] -> Code -> (Env, Code)
 fMembMeth env t (LowerId x) ps s = (env, [LABEL x] ++ startup ++ s ++ cleanup ++ [RET])
-    where startup = [LDR MP] ++ [LDRR MP SP] 
+    where startup = [LDR MP] ++ [LDRR MP SP] ++ [AJS lengthLocal]
           cleanup = [LDRR SP MP] ++ [STR MP] ++ [STS (-n)] ++ [AJS (-(n-1))]
           n = length ps
+          lengthLocal = M.size (M.filter (> 0) env) 
+
+fParameter :: Env -> Decl -> (Env, Code)
+fParameter env(Decl _ (LowerId x) ) = case env == M.empty of 
+                                          True -> (M.insert x (-2) env, [])
+                                          False -> (M.insert x ((minimum env)-1) env, [])
+    where f :: Int -> Int -> Int
+          f x r = min x r
+          minimum env = foldr f (-1) env
 
 fStatDecl :: Env -> Decl -> (Env, Code)
-fStatDecl env d = (env, [])
+fStatDecl env d = fMembDecl env d
 
 fStatExpr :: Env -> (ValueOrAddress -> Code) -> (Env, Code)
-fStatExpr env e = (env, e Value ++ [pop])
+fStatExpr env e = (env, e Value)                            -- deleted ++[pop]
 
 fStatIf :: Env -> (ValueOrAddress -> Code) -> Code -> Code -> (Env, Code)
 fStatIf env e s1 s2 = (env, c ++ [BRF (n1 + 2)] ++ s1 ++ [BRA n2] ++ s2)
@@ -77,11 +87,16 @@ fExprCon env (TokenChar c) va = [LDC (ord c)]
 
 fExprVar :: Env -> Token -> ValueOrAddress -> Code
 fExprVar env (LowerId x) va = let loc = 37 in case va of
-                                              Value    ->  [LDL  loc]
-                                              Address  ->  [LDLA loc]
+                                              Value    ->  case M.lookup x env of 
+                                                            Just a -> [LDL a]
+                                                            Nothing -> error ("Variable " ++ x ++ "not declared") 
+                                              Address  ->  case M.lookup x env of 
+                                                            Just loc -> [STL loc]
+                                                            Nothing -> error ("Variable " ++ x ++ "not declared") 
+                                                            
 
 fExprOp :: Env -> Token -> (ValueOrAddress -> Code) -> (ValueOrAddress -> Code) -> ValueOrAddress -> Code
-fExprOp env (Operator "=") e1 e2 va = e2 Value ++ [LDS 0] ++ e1 Address ++ [STA 0]
+fExprOp env (Operator "=") e1 e2 va = e2 Value ++ e1 Address
 fExprOp env (Operator "&&") e1 e2 va = e1 Value ++ e1 Value ++ [BRF (codeSize (e2 Value)+1)] ++ e2 Value ++ [AND] -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
 fExprOp env (Operator "||") e1 e2 va = e1 Value ++ e1 Value ++ [BRT (codeSize (e2 Value)+1)] ++ e2 Value ++ [OR]  -- set e1 twice on stack: once for evaluation on branch, once as result or to calculate further with
 fExprOp env (Operator op)  e1 e2 va = e1 Value ++ e2 Value ++ [opCodes M.! op]
