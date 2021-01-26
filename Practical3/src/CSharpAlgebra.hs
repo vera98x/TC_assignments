@@ -39,7 +39,7 @@ foldCSharp (c, (md,mm), (pp), (sd,se,si,sw,sf,sr,sc,sb), (ec,ev,eo)) cl = fClas 
     where
         fClas env (Class      t ms)     = let (env1, code) = updateMapEnv fMemb env ms in c env1 t code --(map (fMemb env) ms)
         fMemb env (MemberD    d)        = md env d
-        fMemb env (MemberM    t m ps s) = let (env_p, c) = updateMapEnv fPar ev_ ps in let (env1, code) = (fStat env_p s) in mm env1 t m ps code --to do let (env2, code2) = mm env1 t m ps code in (env, code2) --(fStat env s)
+        fMemb env (MemberM    t m ps s) = let (env_p, c) = updateMapEnv fPar ev_ (reverse ps) in let (env1, code) = (fStat env_p s) in mm env1 t m ps code --to do let (env2, code2) = mm env1 t m ps code in (env, code2) --(fStat env s)
         fPar  env ps                    = pp env ps
         fStat env (StatDecl   d)        = sd env d
         fStat env (StatExpr   e)        = se env (fExpr env e)
