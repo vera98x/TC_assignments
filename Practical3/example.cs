@@ -4,14 +4,19 @@ class Hello
     
     void main()
     {
-        square(5,2,7);
+        4 + 4;
+        int b;
+        b = square(5,2,7);
+        print(b);
+        print(v);
     }
 
-    void square(int x, int y, int z)
+    int square(int x, int y, int z)
     {
         print(x);
         print(y);
         print(z);
         print(x*y);
+        return 8;
     }
 }

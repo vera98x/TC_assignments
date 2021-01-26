@@ -17,12 +17,12 @@ data Stat = StatDecl   Decl
           | StatWhile  Expr Stat
           | StatFor    [Stat] Expr [Stat] Stat
           | StatReturn Expr
-          | StatCall   Token [Expr]
           | StatBlock  [Stat]
           deriving Show
 
 data Expr = ExprConst  Token
           | ExprVar    Token
+          | ExprCall   Token [Expr]
           | ExprOper   Token Expr Expr
           deriving Show
 
@@ -69,7 +69,6 @@ pStat =  StatExpr   <$> pExpr <*  sSemi
      <|> StatWhile  <$ symbol KeyWhile  <*> parenthesised pExpr <*> pStat
      <|> StatFor    <$> (symbol KeyFor   *> ( symbol POpen *> pCSStatDecls <* sSemi)) <*> (pExpr <* sSemi) <*> (pCSStatDecls <* (symbol PClose)) <*> pStat
      <|> StatReturn <$ symbol KeyReturn <*> pExpr               <*  sSemi
-     <|> StatCall   <$> sLowerId <*> parenthesised (option (listOf pExpr (symbol Comma)) []) <* sSemi
      <|> pBlock
      where optionalElse = option (symbol KeyElse *> pStat) (StatBlock [])
 
@@ -83,6 +82,7 @@ pExpr6 = chainl pExpr7 op6
 pExpr7 = chainl pExpr8 op7
 pExpr8 = chainl pExprSimple op8
 pExprSimple =  ExprConst <$> sConst
+           <|> ExprCall   <$> sLowerId <*> parenthesised (option (listOf pExpr (symbol Comma)) [])
            <|> ExprVar   <$> sLowerId
            <|> parenthesised pExpr
 

@@ -21,8 +21,8 @@ codeAlgebra =
     ( fClas
     , (fMembDecl, fMembMeth)
     , (fParameter)
-    , (fStatDecl, fStatExpr, fStatIf, fStatWhile, fStatFor, fStatReturn, fStatCall, fStatBlock)
-    , (fExprCon, fExprVar, fExprOp)
+    , (fStatDecl, fStatExpr, fStatIf, fStatWhile, fStatFor, fStatReturn, fStatBlock)
+    , (fExprCon, fExprVar, fExprCall, fExprOp)
     )
 
 
@@ -30,7 +30,8 @@ fClas :: Env -> Token -> [Code] -> (Env, Code)
 fClas env c ms = (env, [Bsr "main", HALT] ++ concat ms)
 
 fMembDecl :: Env -> Decl -> (Env, Code)
-fMembDecl env (Decl _ (LowerId x) ) = (M.insert x ((M.size env)+1) env, [])
+fMembDecl env (Decl _ (LowerId x) ) = (M.insert x (lSize+1) env, [])
+    where lSize = M.size (M.filter (> 0) env)
 
 fMembMeth :: Env -> Type -> Token -> [Decl] -> Code -> (Env, Code)
 fMembMeth env t (LowerId x) ps s = (env, [LABEL x] ++ startup ++ s ++ cleanup ++ [RET])
@@ -70,11 +71,7 @@ fStatFor env ss1 e ss2 stats = (env1, concat ss1 ++ code)
     where (env1, code) = (fStatWhile env e (stats ++ (concat ss2) ) ) 
 
 fStatReturn :: Env -> (ValueOrAddress -> Code) -> (Env, Code)
-fStatReturn env e = (env, e Value ++ [pop] ++ [RET])
-
-fStatCall :: Env -> Token -> [(ValueOrAddress -> Code)] -> (Env, Code)
-fStatCall env (LowerId "print") es = (env, concat (map (\x -> x Value) es) ++ [TRAP 0])
-fStatCall env (LowerId x) es = (env, concat (map (\x -> x Value) es) ++ [Bsr x])
+fStatReturn env e = (env, e Value ++ [STR R3])
 
 fStatBlock :: Env -> [Code] -> (Env, Code)
 fStatBlock env c = (env, concat c)
@@ -89,11 +86,14 @@ fExprVar :: Env -> Token -> ValueOrAddress -> Code
 fExprVar env (LowerId x) va = let loc = 37 in case va of
                                               Value    ->  case M.lookup x env of 
                                                             Just a -> [LDL a]
-                                                            Nothing -> error ("Variable " ++ x ++ "not declared") 
+                                                            Nothing -> error ("Variable " ++ x ++ " not declared") 
                                               Address  ->  case M.lookup x env of 
                                                             Just loc -> [STL loc]
-                                                            Nothing -> error ("Variable " ++ x ++ "not declared") 
+                                                            Nothing -> error ("Variable " ++ x ++ " not declared") 
                                                             
+fExprCall :: Env -> Token -> [(ValueOrAddress -> Code)] -> ValueOrAddress -> Code
+fExprCall env (LowerId "print") es va = concat (map (\x -> x Value) es) ++ [TRAP 0]
+fExprCall env (LowerId x) es va = concat (map (\x -> x Value) es) ++ [Bsr x] ++ [LDR R3]
 
 fExprOp :: Env -> Token -> (ValueOrAddress -> Code) -> (ValueOrAddress -> Code) -> ValueOrAddress -> Code
 fExprOp env (Operator "=") e1 e2 va = e2 Value ++ e1 Address

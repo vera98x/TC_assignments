@@ -23,19 +23,19 @@ type CSharpAlgebra clas memb par stat expr                              --
          , Env -> expr -> stat          -> (Env, stat)              --       | StatWhile  Expr Stat
          , Env -> [stat]->expr->[stat] -> stat -> (Env, stat)       --       | StatFor    [Stat] Expr [Stat] Stat
          , Env -> expr                  -> (Env, stat)              --       | StatReturn Expr
-         , Env -> Token -> [expr]       -> (Env, stat)              --       | StatCall Expr
          , Env -> [stat]                -> (Env, stat)              --       | StatBlock  [Stat]
          )                                                          --
                                                                     --
       ,  ( Env -> Token                  -> expr                    --  Expr = ExprConst  Token
          , Env -> Token                  -> expr                    --       | ExprVar    Token
+         , Env -> Token -> [expr]        -> expr                    --       | ExprCall   Expr
          , Env -> Token -> expr -> expr  -> expr                    --       | ExprOper   Token Expr Expr
          )                                                          --
       )
 
 
 foldCSharp :: CSharpAlgebra clas memb par stat expr -> Class -> (Env, clas)
-foldCSharp (c, (md,mm), (pp), (sd,se,si,sw,sf,sr,sc,sb), (ec,ev,eo)) cl = fClas ev_ cl
+foldCSharp (c, (md,mm), (pp), (sd,se,si,sw,sf,sr,sb), (ec,ev,ecall,eo)) cl = fClas ev_ cl
     where
         fClas env (Class      t ms)     = let (env1, code) = updateMapEnv fMemb env ms in c env1 t code --(map (fMemb env) ms)
         fMemb env (MemberD    d)        = md env d
@@ -54,10 +54,10 @@ foldCSharp (c, (md,mm), (pp), (sd,se,si,sw,sf,sr,sc,sb), (ec,ev,eo)) cl = fClas 
                                                  sf env4 code1 code2 code3 code4 -- (map (fStat env) ss1) (fExpr env e) (map (fStat env) ss2) (fStat env s)
 
         fStat env (StatReturn e)        = sr env (fExpr env e)
-        fStat env (StatCall t es)       = sc env t (map (fExpr env) es)
         fStat env (StatBlock  ss)       = let (env1, code) = updateMapEnv fStat env ss in sb env1 code --(map (fStat env) ss)
         fExpr env (ExprConst  con)      = ec env con
         fExpr env (ExprVar    var)      = ev env var
+        fExpr env (ExprCall t es)       = ecall env t (map (fExpr env) es)
         fExpr env (ExprOper   op e1 e2) = eo env op (fExpr env e1) (fExpr env e2)
         updateMapEnv func env xs = foldr (\x (e,c) -> let (e1, c1) = (func e x) in (e1, c++[c1]) ) (env,[]) (reverse xs)
 
